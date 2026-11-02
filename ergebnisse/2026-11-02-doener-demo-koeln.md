@@ -1,9 +1,11 @@
 # Ergebnis: Demo-Webseite „Döner Muster" (Köln-Ehrenfeld)
 
-Datum: 2026-11-02 · Art: interner Testauftrag / Vertriebs-Demo · Status: **gebaut und abgenommen, Deployment ausstehend**
+Datum: 2026-11-02 · Art: interner Testauftrag / Vertriebs-Demo · Status: **live (Demo)**
 
 ## Links
-- **Live-URL:** ausstehend. Die Cloud-Umgebung blockiert `api.vercel.com`; nach Freigabe der Domain wird als Vercel-Projekt `doener-demo-koeln` deployt.
+- **Live-URL:** https://doener-demo-koeln.vercel.app (Vercel-Projekt `doener-demo-koeln`, Hobby, Status READY laut Vercel-API)
+- Vercel-Schutz auf Standard gesetzt: Produktions-Domain öffentlich, Preview-Deployments nur mit Login.
+- Hinweis: Der HTTP-200- und Screenshot-Check der Live-URL war aus der Cloud-Umgebung nicht möglich, weil `*.vercel.app` dort gesperrt ist; lokal geprüft wurde derselbe Build.
 - **Repo:** https://github.com/IT-Money97/KI-Agent-Team/tree/claude/project-thread-0a1nia/projekte/doener-demo-koeln
 - **Screenshots:** `projekte/doener-demo-koeln/screenshots/` (375/768/1440 px, hell und dunkel)
 
@@ -20,7 +22,7 @@ One-Page-Webseite (Astro, statisch) mit Live-Status „Jetzt geöffnet", Speisek
 - Fotos durch SVG-Illustration ersetzt, bis echte Fotos vorliegen.
 
 ## Offene Punkte
-- Deployment nach Netzwerkfreigabe (`api.vercel.com`, `vercel.com`).
+- Für automatische Live-Checks `*.vercel.app` in der Netzwerkfreigabe der Umgebung ergänzen.
 - Für echte Kunden: `noindex` entfernen, eigene Domain, Vercel Pro (Hobby ist nur für nicht-kommerzielle Nutzung) oder EU-Hosting.
 
 ## Was ein echter Kunde liefern muss
