@@ -1,0 +1,4 @@
+# DEMO-Seite: nicht indexieren. Für echte Kunden: "Allow: /" und Sitemap-Zeile behalten.
+User-agent: *
+Disallow: /
+Sitemap: https://doener-demo-koeln.vercel.app/sitemap-index.xml

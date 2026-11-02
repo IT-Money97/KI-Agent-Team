@@ -1,0 +1,166 @@
+---
+import Base from '../layouts/Base.astro';
+import { laden, oeffnungszeiten, speisekarte, allergene } from '../data/laden';
+const ordnung = [1, 2, 3, 4, 5, 6, 0]; // Mo–So anzeigen
+---
+<Base title={`${laden.name} – Döner in Köln-${laden.stadtteil} (Demo)`} description={`${laden.untertitel}. Speisekarte, Öffnungszeiten und Route. Demo-Webseite mit Platzhalterdaten.`} jsonLd>
+  <section class="hero">
+    <div class="container hero-inner">
+      <div>
+        <p class="status" data-status aria-live="polite"><span class="dot"></span><span data-status-text>Öffnungszeiten siehe unten</span></p>
+        <h1>{laden.name}</h1>
+        <p class="lead">{laden.untertitel}. Frisch vom Spieß, schnell auf die Hand.</p>
+        <div class="cta">
+          <a class="btn btn--primary" href={`tel:${laden.telefonLink}`}>
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>
+            Anrufen
+          </a>
+          <a class="btn btn--ghost" href={laden.mapsUrl} target="_blank" rel="noopener">Route planen</a>
+          <a class="btn btn--ghost" href="#karte">Speisekarte</a>
+        </div>
+        <p class="small muted">{laden.strasse}, {laden.plz} {laden.ort}-{laden.stadtteil}</p>
+      </div>
+      <figure class="hero-art" aria-hidden="true">
+        <svg viewBox="0 0 320 320" width="320" height="320">
+          <circle cx="160" cy="160" r="150" fill="var(--c-accent-soft)"/>
+          <rect x="150" y="30" width="20" height="260" rx="6" fill="var(--c-text-muted)"/>
+          <path d="M100 70h120l-18 190H118z" fill="#c8793a"/>
+          <path d="M104 100h112M107 130h106M110 160h100M113 190h94M116 220h88" stroke="#7a3d14" stroke-width="7" stroke-linecap="round"/>
+          <path d="M100 70h120l-3 30H103z" fill="#e39a55"/>
+          <g fill="#f25c3b"><circle cx="70" cy="250" r="12"/><circle cx="250" cy="240" r="10"/></g>
+          <g fill="#4caf50"><ellipse cx="60" cy="120" rx="16" ry="8" transform="rotate(-30 60 120)"/><ellipse cx="262" cy="110" rx="16" ry="8" transform="rotate(25 262 110)"/></g>
+        </svg>
+        <figcaption class="visually-hidden">Illustration eines Dönerspießes (Platzhalter bis echte Fotos vorliegen)</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="karte" class="section section--alt" aria-labelledby="karte-h">
+    <div class="container">
+      <h2 id="karte-h">Speisekarte</h2>
+      <p class="muted"><span class="ph">Platzhalter:</span> Gerichte beispielhaft, Preise folgen vom Kunden.</p>
+      <div class="menu-grid">
+        {speisekarte.map((k) => (
+          <article class="card">
+            <h3>{k.kategorie}</h3>
+            <ul class="dishes">
+              {k.gerichte.map((g) => (
+                <li>
+                  <div class="dish-head">
+                    <span class="dish-name">{g.name}{g.vegetarisch && <span class="veg" title="vegetarisch"> · vegetarisch</span>}</span>
+                    <span class="price">{g.preis}</span>
+                  </div>
+                  <p class="dish-desc">{g.beschreibung}{g.allergene.length > 0 && <span class="allergens"> ({g.allergene.join(', ')})</span>}</p>
+                </li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </div>
+      <details class="legend">
+        <summary>Allergene und Kennzeichnung</summary>
+        <ul>{Object.entries(allergene).map(([k, v]) => <li><strong>{k}</strong> {v}</li>)}</ul>
+        <p class="small muted">Platzhalter. Verbindliche Angaben bitte im Laden erfragen.</p>
+      </details>
+    </div>
+  </section>
+
+  <section id="zeiten" class="section" aria-labelledby="zeiten-h">
+    <div class="container two-col">
+      <div>
+        <h2 id="zeiten-h">Öffnungszeiten</h2>
+        <p class="muted"><span class="ph">Platzhalter</span> Zeiten beispielhaft.</p>
+      </div>
+      <table class="hours">
+        <caption class="visually-hidden">Öffnungszeiten pro Wochentag</caption>
+        <tbody>
+          {ordnung.map((i) => (
+            <tr data-day={i}><th scope="row">{oeffnungszeiten[i].tag}</th><td>{oeffnungszeiten[i].von} – {oeffnungszeiten[i].bis} Uhr</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="standort" class="section section--alt" aria-labelledby="standort-h">
+    <div class="container two-col">
+      <div>
+        <h2 id="standort-h">So findest du uns</h2>
+        <address>
+          <strong>{laden.name}</strong><br />
+          {laden.strasse}<br />
+          {laden.plz} {laden.ort}-{laden.stadtteil}<br />
+          Telefon: <a href={`tel:${laden.telefonLink}`}>{laden.telefonAnzeige}</a>
+        </address>
+        <p class="small muted">Nur Barzahlung? Karte? <span class="ph">Platzhalter, vom Kunden zu ergänzen</span></p>
+      </div>
+      <div class="map-card">
+        <p>Wir binden keine Karte ein, damit beim Besuch keine Daten an Google gehen.</p>
+        <a class="btn btn--primary" href={laden.mapsUrl} target="_blank" rel="noopener">In Google Maps öffnen</a>
+      </div>
+    </div>
+  </section>
+
+  <nav class="action-bar" aria-label="Schnellaktionen">
+    <a href={`tel:${laden.telefonLink}`}>Anrufen</a>
+    <a href={laden.mapsUrl} target="_blank" rel="noopener">Route</a>
+    <a href="#karte">Speisekarte</a>
+  </nav>
+
+  <script is:inline define:vars={{ zeiten: oeffnungszeiten }}>
+    (function () {
+      const parts = new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+      const wd = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'].indexOf(parts.find(p => p.type === 'weekday').value);
+      const mins = (+parts.find(p => p.type === 'hour').value) * 60 + (+parts.find(p => p.type === 'minute').value);
+      const toMin = (s) => { const [h, m] = s.split(':'); return +h * 60 + +m; };
+      if (wd < 0) return;
+      const heute = zeiten[wd];
+      const offen = mins >= toMin(heute.von) && mins < toMin(heute.bis);
+      const el = document.querySelector('[data-status]');
+      el.classList.add(offen ? 'is-open' : 'is-closed');
+      el.querySelector('[data-status-text]').textContent = offen
+        ? `Jetzt geöffnet · bis ${heute.bis} Uhr`
+        : (mins < toMin(heute.von) ? `Geschlossen · öffnet heute um ${heute.von} Uhr` : `Geschlossen · morgen ab ${zeiten[(wd + 1) % 7].von} Uhr`);
+      document.querySelector(`tr[data-day="${wd}"]`)?.classList.add('today');
+    })();
+  </script>
+</Base>
+
+<style>
+  .hero { padding: var(--sp-5) 0 var(--sp-6); }
+  .hero-inner { display: grid; gap: var(--sp-5); align-items: center; }
+  @media (min-width: 768px) { .hero-inner { grid-template-columns: 1.3fr 1fr; } }
+  .lead { font-size: 1.25rem; color: var(--c-text-muted); max-width: 34ch; }
+  .cta { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-4) 0 var(--sp-3); }
+  .status { display: inline-flex; align-items: center; gap: var(--sp-2); font-weight: 700; padding: var(--sp-1) var(--sp-3); border-radius: var(--r-pill); background: var(--c-surface); border: 1px solid var(--c-border); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c-text-muted); }
+  .status.is-open { color: var(--c-open); } .status.is-open .dot { background: var(--c-open); }
+  .status.is-closed { color: var(--c-closed); } .status.is-closed .dot { background: var(--c-closed); }
+  .hero-art { margin: 0; justify-self: center; max-width: 280px; }
+  @media (max-width: 767px) { .hero-art { display: none; } }
+  .menu-grid { display: grid; gap: var(--sp-3); margin-top: var(--sp-4); }
+  @media (min-width: 768px) { .menu-grid { grid-template-columns: 1fr 1fr; } }
+  .card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-card); padding: var(--sp-4); box-shadow: var(--shadow); }
+  .card h3 { font-size: 1.25rem; color: var(--c-accent); }
+  .dishes { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); }
+  .dish-head { display: flex; justify-content: space-between; gap: var(--sp-3); font-weight: 700; }
+  .price { white-space: nowrap; color: var(--c-accent); }
+  .veg { font-weight: 600; color: var(--c-open); font-size: var(--fs-small); }
+  .dish-desc { margin: 0; color: var(--c-text-muted); font-size: var(--fs-small); }
+  .legend { margin-top: var(--sp-4); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-card); padding: var(--sp-3) var(--sp-4); }
+  .legend summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; }
+  .legend ul { columns: 2; padding-left: var(--sp-3); }
+  .two-col { display: grid; gap: var(--sp-4); }
+  @media (min-width: 768px) { .two-col { grid-template-columns: 1fr 1fr; align-items: start; } }
+  .hours { width: 100%; border-collapse: collapse; background: var(--c-surface); border-radius: var(--r-card); overflow: hidden; border: 1px solid var(--c-border); }
+  .hours th, .hours td { text-align: left; padding: var(--sp-3); border-bottom: 1px solid var(--c-border); }
+  .hours td { text-align: right; font-variant-numeric: tabular-nums; }
+  .hours tr.today { background: var(--c-accent-soft); font-weight: 700; }
+  .hours tr.today th::after { content: ' · heute'; color: var(--c-accent); }
+  address { font-style: normal; margin-bottom: var(--sp-3); line-height: 1.8; }
+  .map-card { background: var(--c-surface); border: 1px dashed var(--c-border); border-radius: var(--r-card); padding: var(--sp-4); }
+  .action-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--c-surface); border-top: 1px solid var(--c-border); padding-bottom: env(safe-area-inset-bottom); }
+  .action-bar a { min-height: 60px; display: grid; place-items: center; font-weight: 700; text-decoration: none; color: var(--c-text); }
+  .action-bar a:first-child { background: var(--c-accent); color: var(--c-accent-text); }
+  @media (min-width: 768px) { .action-bar { display: none; } }
+</style>
