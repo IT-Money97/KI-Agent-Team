@@ -1,0 +1,21 @@
+---
+import Base from '../layouts/Base.astro';
+import { laden } from '../data/laden';
+---
+<Base title={`Datenschutz – ${laden.name} (Demo)`} description="Datenschutzerklärung der Demo-Webseite (Platzhalter).">
+  <section class="section"><div class="container prose">
+    <h1>Datenschutzerklärung</h1>
+    <p class="ph">PLATZHALTER: Entwurf auf Basis des technischen Aufbaus. Vor Livegang rechtlich prüfen lassen und Verantwortlichen eintragen.</p>
+    <h2>1. Verantwortlicher</h2>
+    <p>[Name/Firma, Anschrift, E-Mail]</p>
+    <h2>2. Hosting</h2>
+    <p>Diese Webseite wird bei Vercel Inc. (USA) gehostet. Beim Aufruf verarbeitet der Hoster technisch notwendige Daten (z. B. IP-Adresse, Zeitpunkt, aufgerufene Seite) in Server-Logfiles. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO. [Angaben zum Auftragsverarbeitungsvertrag und Drittlandtransfer ergänzen]</p>
+    <h2>3. Cookies, Tracking, Schriftarten</h2>
+    <p>Diese Seite setzt keine Cookies, nutzt kein Tracking und lädt keine Schriftarten oder Skripte von Drittanbietern. Ihre Auswahl für den Hell/Dunkel-Modus wird nur lokal in Ihrem Browser gespeichert.</p>
+    <h2>4. Externe Links</h2>
+    <p>Der Link „Route planen“ führt zu Google Maps. Erst beim Anklicken werden Daten an Google übertragen.</p>
+    <h2>5. Ihre Rechte</h2>
+    <p>Sie haben das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Widerspruch und Beschwerde bei einer Aufsichtsbehörde (z. B. LDI NRW).</p>
+  </div></section>
+</Base>
+<style>.prose { max-width: 70ch; } .prose h2 { font-size: 1.25rem; margin-top: var(--sp-4); } .ph { display: block; padding: var(--sp-3); }</style>

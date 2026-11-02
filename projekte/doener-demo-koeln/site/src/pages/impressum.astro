@@ -1,0 +1,21 @@
+---
+import Base from '../layouts/Base.astro';
+import { laden } from '../data/laden';
+---
+<Base title={`Impressum – ${laden.name} (Demo)`} description="Impressum der Demo-Webseite (Platzhalter).">
+  <section class="section"><div class="container prose">
+    <h1>Impressum</h1>
+    <p class="ph">PLATZHALTER: Dies ist eine Demo. Vor Livegang mit den echten Angaben des Betreibers füllen (§ 5 DDG).</p>
+    <h2>Angaben gemäß § 5 DDG</h2>
+    <p>[Vor- und Nachname bzw. Firma mit Rechtsform]<br />{laden.strasse}<br />{laden.plz} {laden.ort}</p>
+    <h2>Kontakt</h2>
+    <p>Telefon: {laden.telefonAnzeige}<br />E-Mail: [E-Mail-Adresse]</p>
+    <h2>Umsatzsteuer-ID</h2>
+    <p>[USt-IdNr. gemäß § 27a UStG, falls vorhanden]</p>
+    <h2>Verantwortlich für den Inhalt</h2>
+    <p>[Name, Anschrift]</p>
+    <h2>Verbraucherstreitbeilegung</h2>
+    <p>[Hinweis, ob Bereitschaft zur Teilnahme an Streitbeilegungsverfahren besteht]</p>
+  </div></section>
+</Base>
+<style>.prose { max-width: 70ch; } .prose h2 { font-size: 1.25rem; margin-top: var(--sp-4); } .ph { display: block; padding: var(--sp-3); }</style>

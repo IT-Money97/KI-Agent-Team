@@ -1,0 +1,50 @@
+/* Design-Tokens. Hell = Standard, Dunkel per System oder Umschalter. */
+:root {
+  --c-bg: #fffaf3;
+  --c-surface: #ffffff;
+  --c-surface-2: #f6ece0;
+  --c-text: #231a15;
+  --c-text-muted: #5f5149;
+  --c-accent: #b3261e;
+  --c-accent-text: #ffffff;
+  --c-accent-soft: #fde4dc;
+  --c-open: #1b6e35;
+  --c-closed: #8a1c14;
+  --c-border: #e7d8c8;
+  --c-demo-bg: #231a15;
+  --c-demo-text: #ffe8a3;
+  --c-focus: #1a56db;
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fs-body: 1.0625rem;
+  --fs-small: 0.9375rem;
+  --fs-h1: clamp(2.2rem, 7vw, 3.75rem);
+  --fs-h2: clamp(1.6rem, 4.5vw, 2.25rem);
+
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 16px; --sp-4: 24px; --sp-5: 40px; --sp-6: 64px;
+  --r-card: 12px; --r-pill: 999px;
+  --shadow: 0 1px 2px rgb(35 26 21 / .06), 0 4px 16px rgb(35 26 21 / .06);
+  --maxw: 1100px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --c-bg: #17120f; --c-surface: #211a16; --c-surface-2: #2b221d;
+    --c-text: #f6ece2; --c-text-muted: #c9b9ab;
+    --c-accent: #ff8a65; --c-accent-text: #1a0f0a; --c-accent-soft: #3d2219;
+    --c-open: #6fdc8c; --c-closed: #ff9a8f; --c-border: #3a2e27;
+    --c-demo-bg: #ffe8a3; --c-demo-text: #231a15; --c-focus: #8ab4ff;
+    --shadow: none;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --c-bg: #17120f; --c-surface: #211a16; --c-surface-2: #2b221d;
+  --c-text: #f6ece2; --c-text-muted: #c9b9ab;
+  --c-accent: #ff8a65; --c-accent-text: #1a0f0a; --c-accent-soft: #3d2219;
+  --c-open: #6fdc8c; --c-closed: #ff9a8f; --c-border: #3a2e27;
+  --c-demo-bg: #ffe8a3; --c-demo-text: #231a15; --c-focus: #8ab4ff;
+  --shadow: none;
+  color-scheme: dark;
+}
