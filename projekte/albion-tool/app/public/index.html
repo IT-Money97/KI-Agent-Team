@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="de" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Albion Werkbank</title>
+  <meta name="description" content="Lokales Crafting-, Refining-, Markt- und Insel-Planungstool für Albion Online">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 26 18 14l-3-3 5-5 6 6-5 5-3-3L6 26z' fill='%23e0b354'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Zum Inhalt springen</a>
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 26 18 14l-3-3 5-5 6 6-5 5-3-3L6 26z"/></svg>
+      <span>Albion Werkbank</span>
+    </div>
+    <nav id="tabs" class="tabs" role="tablist" aria-label="Bereiche"></nav>
+    <button id="gear" class="btn gear" type="button" aria-expanded="false" aria-controls="globals">⚙ Einstellungen</button>
+    <div id="globals" class="globals"></div>
+  </header>
+  <main id="main" tabindex="-1"><section class="card"><p>Lade Spieldaten …</p></section></main>
+  <footer id="footer" class="footer"></footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
