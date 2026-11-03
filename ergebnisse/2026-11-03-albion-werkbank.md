@@ -36,3 +36,9 @@ Ein lokales Tool für Albion-Online-Spieler, das ohne Installation von Paketen l
 - Neuer Bereich „Mein Charakter“ mit allen Destiny-Board-Specs (aus den Spieldaten). Die Werkbank rechnet daraus die FCE je Item automatisch, für Crafting, Refining und Insel.
 - Crafting, Markt und Insel neu in Kacheln aufgebaut, seltene Optionen eingeklappt, keine Funktion entfernt.
 - Details: `projekte/albion-tool/FEEDBACK-2.md`. Tests 11/11 grün, Browser-Test Desktop und Handy ohne Fehler.
+
+## Update 3: Reittiere, Empfehlungen, Suche
+- Insel: Tiere verkaufen, schlachten oder satteln (mit Material und Kosten), Empfehlung nach Marktpreisen, Anzahl Tiere frei, jeder Posten abwählbar.
+- Crafting: Empfehlung „Tier direkt verkaufen oder herstellen?“ bei Reittieren und Fleisch.
+- Neue Suche mit Tier/Verzauberung, Umlauten und Spielerbegriffen.
+- Details: `projekte/albion-tool/FEEDBACK-3.md`. Tests 13/13 grün.

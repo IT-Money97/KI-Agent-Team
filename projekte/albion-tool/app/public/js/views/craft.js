@@ -2,7 +2,7 @@
 // Item → Ergebnis-Kacheln → Einstellungen (Standort, Fokus & Specs, Markt) → Material-Kacheln → Verkauf/Einkauf
 import { h, fmt, field, toggle, select, numberInput, toast, debounce, ageClass } from "../ui.js";
 import { data, searchFamilies, variants, itemName, tierLabel, locationOptions, resolveLocation, marketCityForLocation, GROUPS } from "../data.js";
-import { productionBonus, planProduction, productionResult, shoppingList, specsForItem, fceFromSpecs } from "../calc.js";
+import { productionBonus, planProduction, productionResult, shoppingList, specsForItem, fceFromSpecs, netSalePrice } from "../calc.js";
 import { CITIES, buyQuote, sellQuote, fetchPrices } from "../market.js";
 import { specWidget } from "./profile.js";
 
@@ -92,7 +92,9 @@ function itemTile(app) {
   const pick = (r) => {
     const v = variants(r.id);
     const tierMap = v.get(it?.t) || [...v.values()].find((m) => [...m.values()].some((id) => D.recipes[id]));
-    const id = [...tierMap.values()].find((x) => D.recipes[x] && D.items[x].l === (it?.l || 0)) || [...tierMap.values()].find((x) => D.recipes[x]) || r.id;
+    // Tier/Verzauberung aus der Suche („t6 tasche“) hat Vorrang, sonst aktuelles Tier beibehalten
+    const explicit = D.recipes[r.id] && (D.items[r.id].t !== 4 || D.items[r.id].l !== 0) ? r.id : null;
+    const id = explicit || [...(tierMap?.values() || [])].find((x) => D.recipes[x] && D.items[x].l === (it?.l || 0)) || [...(tierMap?.values() || [])].find((x) => D.recipes[x]) || r.id;
     c.itemId = id; c.manualSale = null; c.search = ""; app.save(); app.render(); autoPrices(app);
   };
   const doSearch = (q) => {
@@ -103,7 +105,7 @@ function itemTile(app) {
         h("span", { class: "result-name" }, r.name), h("span", { class: "result-meta" }, GROUPS.find((g) => g.id === r.family.group)?.label || ""))));
     if (!list.length) results.append(h("p", { class: "muted small pad" }, "Nichts gefunden. Deutsch oder englisch suchen, z. B. „Planken“, „bag“, „Eintopf“."));
   };
-  const searchInput = h("input", { type: "search", placeholder: "Was willst du herstellen? (z. B. Tasche, Planken, Eintopf)", value: c.search || "", "aria-label": "Item suchen",
+  const searchInput = h("input", { type: "search", placeholder: "Was willst du herstellen? (z. B. Reitpferd, t6 Tasche, Planken 5.1)", value: c.search || "", "aria-label": "Item suchen",
     oninput: debounce((e) => { c.search = e.target.value; app.save(); doSearch(e.target.value); }, 120) });
   const groupSel = select([{ value: "", label: "Alle Kategorien" }, ...GROUPS.map((g) => ({ value: g.id, label: g.label }))], c.searchGroup || "", (v) => { c.searchGroup = v; app.save(); doSearch(searchInput.value); }, { "aria-label": "Kategorie" });
   const searchBox = h("details", { class: "picker", open: !!(c.search || c.searchGroup) || null },
@@ -169,7 +171,41 @@ function resultTiles(calc, app) {
     h("div", { class: "band-foot" },
       h("span", { class: "muted" }, `${fmt.int(node.crafts)} Herstellungen · ${fmt.int(node.produced)} Stück · Material aus ${state.settings.buyCity} · Verkauf in ${state.settings.sellCity}`),
       focusLine ? h("span", { class: `pill ${focusLine.perFocus >= 1 ? "good" : "warn"}` }, `Fokus lohnt sich: ${focusLine.extra >= 0 ? "+" : ""}${fmt.silver(focusLine.extra)} Silber = ${fmt.num(focusLine.perFocus, 2)} je Fokuspunkt`) : null,
-      missing ? h("button", { type: "button", class: "btn primary", onclick: (e) => loadCraftPrices(app, calc, e.currentTarget) }, "Marktpreise laden") : null));
+      missing ? h("button", { type: "button", class: "btn primary", onclick: (e) => loadCraftPrices(app, calc, e.currentTarget) }, "Marktpreise laden") : null),
+    recoTile(calc, app));
+}
+
+/**
+ * Empfehlung „Zutat lieber direkt verkaufen?“ – für Rezepte mit einem Tier (z. B. Pferd → Reitpferd, Ziege → Fleisch).
+ * Vergleicht: Tiere so verkaufen  vs.  herstellen und das Ergebnis verkaufen (abzüglich der übrigen Materialien).
+ */
+export function rawVsCraft(calc, state) {
+  const D = data();
+  const animal = calc.node.inputs.find((r) => /_FARM_.*_GROWN$/.test(r.id));
+  if (!animal || calc.result.revenue == null) return null;
+  const quote = sellQuote(state, animal.id, state.settings.sellCity, 1);
+  if (!quote) return { animal, missing: true };
+  const rawValue = netSalePrice(quote.price, { premium: state.settings.premium, mode: state.settings.sellMode, constants: D.constants }).net * animal.net;
+  if (calc.node.missingPrices) return { animal, missing: true };
+  const otherCost = calc.result.cost - (animal.cost || 0);
+  const craftValue = calc.result.revenue - otherCost - (calc.result.focusCostSilver || 0);
+  return { animal, rawValue, craftValue, diff: craftValue - rawValue, better: craftValue >= rawValue ? "craft" : "raw" };
+}
+
+function recoTile(calc, app) {
+  const { state } = app;
+  const lang = state.settings.lang;
+  const x = rawVsCraft(calc, state);
+  if (!x) return null;
+  const name = `${fmt.int(x.animal.net)}× ${itemName(x.animal.id, lang)}`;
+  if (x.missing) return h("div", { class: "reco-band muted" }, `Vergleich „${name} direkt verkaufen“: Marktpreise laden, dann siehst du, ob sich das Herstellen lohnt.`);
+  const what = itemName(calc.node.id, lang);
+  return h("div", { class: `reco-band ${x.better === "craft" ? "reco-good" : "reco-bad"}` },
+    h("strong", {}, "Empfehlung laut Markt: "),
+    x.better === "craft"
+      ? `Herstellen lohnt sich. ${what} bringt ${fmt.silver(x.diff)} Silber mehr, als ${name} direkt zu verkaufen.`
+      : `Lieber ${name} direkt verkaufen. Das bringt ${fmt.silver(-x.diff)} Silber mehr als ${what} herzustellen.`,
+    h("span", { class: "muted small" }, ` (Tiere verkauft: ${fmt.silver(x.rawValue)} · hergestellt nach Materialkosten: ${fmt.silver(x.craftValue)})`));
 }
 
 function bigTile(label, value, tone, sub) {

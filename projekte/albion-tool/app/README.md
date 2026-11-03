@@ -31,6 +31,9 @@ Die Seite ist in Kacheln aufgebaut: oben das Ergebnis (Gewinn, Marge, Rückgabe,
 - Marktpreise laden oder eigene Preise eintragen. Fehlende Preise werden gelb markiert, der Gewinn heißt dann „vorläufig“.
 - Einkaufsliste kopieren oder als Plan speichern.
 
+### Suche
+Deutsch oder englisch, mit Tier und Verzauberung: „t5 tasche“, „planken 6.1“, „Großmeister Tasche“, „T4_BAG@1“. Umlaute gehen auch ohne Punkte („grossmeister“).
+
 ### Markt
 Vier Unterbereiche als Kacheln, damit immer nur einer offen ist:
 - **Städtevergleich**: günstigstes Angebot und höchstes Kaufgebot je Stadt, farbig nach Alter der Daten.
@@ -43,6 +46,10 @@ Vier Unterbereiche als Kacheln, damit immer nur einer offen ist:
 - Ernte, Samenrückgabe, Nachwuchs, Futterbedarf (Lieblingsfutter zählt doppelt), Tierprodukte (Milch, Eier, Wolle …), Schlachten, Fokus und Gewinn pro Tag.
 - Insel-Standort berücksichtigt die +10 %-Ertragsboni der Stadt.
 - Jeder Plot ist eine Kachel mit Gewinn oben rechts; die Kosten-/Erlös-Tabelle ist eingeklappt. Fokuskosten kommen aus deinen Farming-Specs.
+- **Anzahl Tiere / bepflanzte Felder** frei eingeben (z. B. 5 Pferde auf einer Weide mit 9 Feldern).
+- Ausgewachsene Tiere **verkaufen, schlachten oder satteln** (Reitpferd, Gepanzertes Pferd, Transportochse …). Beim Satteln rechnet die Werkbank Material, Menge und Kosten mit.
+- **Empfehlung**: Alle Wege werden mit Marktpreisen verglichen, z. B. „Pferd roh verkaufen bringt mehr als satteln“.
+- Jeden Posten per Häkchen ein- oder ausschließen (z. B. selbst gezüchtete Jungtiere, eigenes Futter).
 
 ### Planer
 - Gespeicherte Crafting- und Insel-Pläne zusammenfassen: Einkaufsliste je Stadt, Fokus gesamt, Gewinn.
