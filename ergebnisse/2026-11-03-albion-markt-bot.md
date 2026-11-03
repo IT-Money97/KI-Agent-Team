@@ -9,7 +9,9 @@ klickt `Create`. Das wiederholt es für alle Items in „Sell from Inventory“.
 ## Einmalig einrichten
 1. Repo-Ordner `projekte/albion-markt-bot` auf deinen Windows-PC kopieren (oder Repo klonen).
 2. `start.bat` doppelklicken. Beim ersten Start installiert es die Python-Pakete und fragt,
-   ob Tesseract-OCR (Texterkennung) per `winget` installiert werden soll: mit **J** bestätigen.
+   ob Tesseract-OCR (Texterkennung) installiert werden soll: mit **J** bestätigen. Gibt es auf
+   dem PC kein `winget`, öffnet sich die Download-Seite: dort das Windows-64-bit-Setup laden,
+   installieren (immer Weiter) und `start.bat` neu starten.
    Fehlt Python: `winget install Python.Python.3.12`, danach `start.bat` erneut starten.
 3. Albion im **Fenster- oder randlosen Modus** starten, Marktplatz öffnen, Reiter
    „Sell from Inventory“.
