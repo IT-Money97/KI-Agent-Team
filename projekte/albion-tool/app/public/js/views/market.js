@@ -46,7 +46,7 @@ export function renderMarket(root, app) {
       const minSell = Math.min(...quotes.filter((q) => q.sell).map((q) => q.sell.price));
       const maxBuy = Math.max(...quotes.filter((q) => q.buy).map((q) => q.buy.price));
       return h("tr", {},
-        h("td", {}, h("button", { type: "button", class: "link", title: "Preisverlauf anzeigen", onclick: () => { m.historyId = id; app.save(); app.render(); } }, itemName(id, lang)), " ", tierSwitcher(id, m, app)),
+        h("td", {}, h("button", { type: "button", class: "link", title: "Preisverlauf anzeigen", onclick: () => { m.historyId = id; m.view = "history"; app.save(); app.render(); } }, itemName(id, lang)), " ", tierSwitcher(id, m, app)),
         quotes.map((q) => h("td", { class: "r cell" },
           q.sell ? h("div", { class: `${ageClass(q.sell.age)} ${q.sell.price === minSell ? "best-buy" : ""}`, title: `Günstigstes Angebot · ${fmt.age(q.sell.age)}` }, fmt.silver(q.sell.price)) : h("div", { class: "muted" }, "–"),
           q.buy ? h("div", { class: `small ${ageClass(q.buy.age)} ${q.buy.price === maxBuy ? "best-sell" : ""}`, title: `Höchstes Kaufgebot · ${fmt.age(q.buy.age)}` }, `↘ ${fmt.silver(q.buy.price)}`) : null)),
@@ -98,19 +98,35 @@ export function renderMarket(root, app) {
       h("p", { class: "muted" }, "Noch keine lohnende Route. Preise für die Merkliste laden; Routen erscheinen, wenn Verkauf nach Steuern über dem Einkauf liegt."),
     h("p", { class: "muted small" }, "Annahme: gesamte Menge ist zum angezeigten Preis handelbar. Transport, Risiko und Liquidität sind nicht eingerechnet. „Auftrag“ = Verkaufsauftrag zum aktuellen Tiefstpreis inkl. 2,5 % Einstellgebühr."));
 
-  // ---------- Preisverlauf
-  const historyCard = h("section", { class: "card" }, h("h2", {}, "Preisverlauf"));
-  if (m.historyId) {
-    const chartBox = h("div", { class: "chart" }, h("p", { class: "muted" }, "Lade Verlauf …"));
-    historyCard.append(h("p", {}, `${itemName(m.historyId, lang)} ${tierLabel(m.historyId)} · Tagesdurchschnitt · Qualität ${m.quality}`), chartBox);
-    fetchHistory(state, m.historyId, { cities: m.cities, quality: m.quality })
-      .then((series) => chartBox.replaceChildren(lineChart(series)))
-      .catch((e) => chartBox.replaceChildren(h("p", { class: "warn" }, e.message)));
-  } else {
-    historyCard.append(h("p", { class: "muted" }, "Auf einen Itemnamen im Städtevergleich klicken."));
-  }
+  // ---------- Preisverlauf (wird nur geladen, wenn der Bereich offen ist)
+  const historyView = () => {
+    const card = h("section", { class: "card" }, h("h2", {}, "Preisverlauf"));
+    if (m.historyId) {
+      const chartBox = h("div", { class: "chart" }, h("p", { class: "muted" }, "Lade Verlauf …"));
+      card.append(h("div", { class: "row wrap" }, h("strong", {}, `${itemName(m.historyId, lang)} ${tierLabel(m.historyId)}`), h("span", { class: "muted" }, `Tagesdurchschnitt · Qualität ${m.quality}`),
+        m.watch.length > 1 ? select(m.watch.map((id) => ({ value: id, label: `${itemName(id, lang)} ${tierLabel(id)}` })), m.historyId, (v) => { m.historyId = v; app.save(); app.render(); }, { "aria-label": "Item für Verlauf" }) : null), chartBox);
+      fetchHistory(state, m.historyId, { cities: m.cities, quality: m.quality })
+        .then((series) => chartBox.replaceChildren(lineChart(series)))
+        .catch((e) => chartBox.replaceChildren(h("p", { class: "warn" }, e.message)));
+    } else {
+      card.append(h("p", { class: "muted" }, "Im Städtevergleich auf einen Itemnamen klicken, um den Verlauf zu sehen."));
+    }
+    return card;
+  };
 
-  root.replaceChildren(h("div", { class: "stack" }, watchCard, routeCard, renderScanner(app), historyCard));
+  // ---------- Unterbereiche als Kacheln statt einer langen Seite
+  const VIEWS = [
+    { id: "compare", label: "Städtevergleich", sub: `${m.watch.length} Items auf der Merkliste`, render: () => watchCard },
+    { id: "routes", label: "Handelsrouten", sub: routes.length ? `${routes.length} lohnende Routen` : "Kauf in A, Verkauf in B", render: () => routeCard },
+    { id: "scanner", label: "Profit-Scanner", sub: "Was lohnt sich zu craften?", render: () => renderScanner(app) },
+    { id: "history", label: "Preisverlauf", sub: m.historyId ? `${itemName(m.historyId, lang)} ${tierLabel(m.historyId)}` : "Preise über die Zeit", render: historyView }
+  ];
+  const view = VIEWS.find((v) => v.id === m.view) || VIEWS[0];
+  const nav = h("nav", { class: "tiles cols-4 subnav", "aria-label": "Markt-Bereiche" }, VIEWS.map((v) => h("button", {
+    type: "button", class: `tile nav-tile ${v.id === view.id ? "active" : ""}`, "aria-pressed": String(v.id === view.id),
+    onclick: () => { m.view = v.id; app.save(); app.render(); }
+  }, h("strong", {}, v.label), h("span", { class: "muted small" }, v.sub))));
+  root.replaceChildren(h("div", { class: "stack" }, nav, view.render()));
 }
 
 function tierSwitcher(id, m, app) {

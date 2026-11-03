@@ -267,3 +267,39 @@ export function ageHours(ts, now = Date.now()) {
   const t = Date.parse(/Z|[+-]\d\d:?\d\d$/.test(ts) ? ts : ts + "Z");
   return Number.isFinite(t) ? (now - t) / 3.6e6 : null;
 }
+
+// ---------------------------------------------------------------- Specs (Destiny Board)
+
+const patternCache = new Map();
+function patternRe(p) {
+  let re = patternCache.get(p);
+  if (!re) {
+    re = new RegExp(`^${p.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\?/g, "\\d").replace(/\*/g, ".*")}$`);
+    patternCache.set(p, re);
+  }
+  return re;
+}
+
+/**
+ * Welche Specs senken die Fokuskosten dieses Items? kind: "craft" | "farm"
+ * Ergebnis: [{ spec, fcePerLevel }] – FCE = Stufe × fcePerLevel
+ */
+export function specsForItem(specs, itemId, tier, kind = "craft") {
+  const base = itemId.replace(/@\d$/, "");
+  const out = [];
+  for (const spec of specs || []) {
+    let per = 0;
+    for (const b of spec.bonuses) {
+      if (b.kind !== kind || tier < b.min || tier > b.max) continue;
+      if (b.p.some((p) => patternRe(p).test(base))) per += b.fce;
+    }
+    if (per > 0) out.push({ spec, fcePerLevel: per });
+  }
+  // Meisterschaften (kleiner Ring) zuerst, dann die Spezialisierung mit dem größten Effekt
+  return out.sort((a, b) => b.fcePerLevel - a.fcePerLevel || a.spec.ring - b.spec.ring);
+}
+
+/** Fokuskosten-Effizienz aus eingetragenen Spec-Stufen */
+export function fceFromSpecs(list, levels = {}) {
+  return list.reduce((s, x) => s + Math.min(x.spec.max || 100, Math.max(0, Number(levels[x.spec.id]) || 0)) * x.fcePerLevel, 0);
+}

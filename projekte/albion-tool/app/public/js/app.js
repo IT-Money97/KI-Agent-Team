@@ -1,17 +1,19 @@
 // Einstieg: lädt Spieldaten, verwaltet Zustand und Tabs.
-import { h, select, toggle, toast } from "./ui.js";
+import { h, toast } from "./ui.js";
 import { loadGameData, data } from "./data.js";
 import { loadState, saveState, resetState } from "./store.js";
 import { renderCraft } from "./views/craft.js";
 import { renderMarket } from "./views/market.js";
 import { renderIsland } from "./views/island.js";
 import { renderPlanner } from "./views/planner.js";
+import { renderProfile } from "./views/profile.js";
 
 const TABS = [
-  { id: "craft", label: "Crafting & Refining", render: renderCraft },
+  { id: "craft", label: "Crafting", render: renderCraft },
   { id: "market", label: "Markt", render: renderMarket },
   { id: "island", label: "Insel", render: renderIsland },
-  { id: "planner", label: "Planer", render: renderPlanner }
+  { id: "planner", label: "Planer", render: renderPlanner },
+  { id: "profile", label: "Mein Charakter", render: renderProfile }
 ];
 
 const app = {
@@ -40,15 +42,13 @@ function renderHeader() {
     onclick: () => app.go(t.id)
   }, t.label)));
 
-  const bar = document.getElementById("globals");
-  const gear = document.getElementById("gear");
-  gear.onclick = () => { bar.classList.toggle("open"); gear.setAttribute("aria-expanded", String(bar.classList.contains("open"))); };
-  bar.replaceChildren(
-    select([{ value: "europe", label: "Server: Europa" }, { value: "west", label: "Server: Amerika (West)" }, { value: "east", label: "Server: Asien (Ost)" }], s.server, (v) => { s.server = v; app.save(); renderAll(); toast("Server gewechselt – Preise bitte neu laden."); }, { "aria-label": "Server" }),
-    toggle("Premium", s.premium, (v) => { s.premium = v; app.save(); renderAll(); }, "Premium: 4 % statt 8 % Verkaufssteuer, mehr Ernte"),
-    select([{ value: "de", label: "Namen: Deutsch" }, { value: "en", label: "Names: English" }], s.lang, (v) => { s.lang = v; app.save(); renderAll(); }, { "aria-label": "Sprache der Itemnamen" }),
-    h("button", { type: "button", class: "btn", title: "Hell/Dunkel umschalten", "aria-label": "Hell/Dunkel umschalten", onclick: () => { s.theme = s.theme === "dark" ? "light" : "dark"; app.save(); renderAll(); } }, s.theme === "dark" ? "☀ Hell" : "☾ Dunkel")
-  );
+  // Kompakter Status statt vieler Schalter: Details stehen unter „Mein Charakter“
+  const specCount = Object.keys(app.state.specs || {}).length;
+  const server = { europe: "Europa", west: "Amerika", east: "Asien" }[s.server] || s.server;
+  document.getElementById("status").replaceChildren(
+    h("button", { type: "button", class: "status-chip", title: "Server, Premium und Specs ändern", onclick: () => app.go("profile") },
+      `${server} · ${s.premium ? "Premium" : "ohne Premium"} · ${specCount ? `${specCount} ${specCount === 1 ? "Spec" : "Specs"}` : "Specs eintragen"}`),
+    h("button", { type: "button", class: "btn icon-btn", title: "Hell/Dunkel umschalten", "aria-label": "Hell/Dunkel umschalten", onclick: () => { s.theme = s.theme === "dark" ? "light" : "dark"; app.save(); renderAll(); } }, s.theme === "dark" ? "☀" : "☾"));
 }
 
 function renderFooter() {

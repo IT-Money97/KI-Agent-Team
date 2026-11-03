@@ -122,3 +122,23 @@ test("Handel und Zeitstempel", () => {
   close(ageHours("2026-11-03T00:00:00", Date.parse("2026-11-03T02:00:00Z")), 2);
   assert.equal(ageHours("0001-01-01T00:00:00"), null);
 });
+
+test("Specs: Fokus-Rabatte aus dem Destiny Board", async () => {
+  const { specsForItem, fceFromSpecs } = await import("../public/js/calc.js");
+  const list = specsForItem(data.specs, "T4_MAIN_ARCANESTAFF", 4, "craft");
+  const own = list.find((x) => x.spec.id === "CRAFT_ARCANESTAFFS_ARCANE");
+  const mastery = list.find((x) => x.spec.id === "CRAFT_ARCANESTAFFS");
+  assert.equal(own.fcePerLevel, 280); // 250 eigene + 30 gemeinsame Spezialisierung
+  assert.equal(mastery.fcePerLevel, 30);
+  assert.equal(fceFromSpecs(list, { CRAFT_ARCANESTAFFS: 100, CRAFT_ARCANESTAFFS_ARCANE: 100 }), 31000);
+  // Stufen über dem Maximum werden begrenzt
+  assert.equal(fceFromSpecs(list, { CRAFT_ARCANESTAFFS: 500 }), 3000);
+  // Refining-Spec gilt nur für ihr Tier
+  const t4 = specsForItem(data.specs, "T4_PLANKS", 4).find((x) => x.spec.id === "CRAFT_REFINE_WOOD_T4");
+  const t5 = specsForItem(data.specs, "T5_PLANKS", 5).find((x) => x.spec.id === "CRAFT_REFINE_WOOD_T4");
+  assert.equal(t4.fcePerLevel, 280);
+  assert.equal(t5.fcePerLevel, 30);
+  // Farming
+  const goat = specsForItem(data.specs, "T4_FARM_GOAT_BABY", 4, "farm");
+  assert.equal(fceFromSpecs(goat, { FARM_ANIMALS_GOAT: 100, FARM_ANIMALS: 100 }), 30000);
+});
