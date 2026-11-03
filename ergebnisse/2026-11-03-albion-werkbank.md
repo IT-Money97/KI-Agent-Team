@@ -31,3 +31,8 @@ Ein lokales Tool für Albion-Online-Spieler, das ohne Installation von Paketen l
 - Fokus beim Gießen/Füttern: 1.000 je Feld laut Spieldaten; Nachwuchs-Chance mit Fokus bei Pferden/Ochsen ist eine Schätzung.
 - Erster echter Test mit Live-Marktdaten muss auf Turans PC passieren (`start.bat`).
 - Noch nicht drin: Arbeiter (Laborer), Handelsvolumen in Routen, Karten-Layout der Materialtabelle am Handy.
+
+## Update 2: Übersicht und Specs
+- Neuer Bereich „Mein Charakter“ mit allen Destiny-Board-Specs (aus den Spieldaten). Die Werkbank rechnet daraus die FCE je Item automatisch, für Crafting, Refining und Insel.
+- Crafting, Markt und Insel neu in Kacheln aufgebaut, seltene Optionen eingeklappt, keine Funktion entfernt.
+- Details: `projekte/albion-tool/FEEDBACK-2.md`. Tests 11/11 grün, Browser-Test Desktop und Handy ohne Fehler.

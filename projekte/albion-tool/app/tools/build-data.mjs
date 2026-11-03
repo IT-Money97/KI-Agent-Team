@@ -16,8 +16,12 @@ const SOURCES = {
   names: "formatted/items.json",
   loot: "loot.json",
   crafting: "craftingmodifiers.json",
-  farming: "farmingmodifiers.json"
+  farming: "farmingmodifiers.json",
+  achievements: "achievements.json", // Destiny Board: Specs und Fokus-Rabatte
+  localization: "localization.xml" // nur für Spec-Namen (optional, ca. 75 MB)
 };
+const OPTIONAL = new Set(["localization"]);
+const RAW = new Set(["localization"]);
 
 // Stadt-Cluster-IDs aus craftingmodifiers.xml / farmingmodifiers.xml
 export const CLUSTERS = {
@@ -37,10 +41,56 @@ async function load(key, log = console.log) {
     const text = await res.text();
     await mkdir(CACHE, { recursive: true });
     await writeFile(file, text);
-    return JSON.parse(text);
+    return RAW.has(key) ? text : JSON.parse(text);
   }
   await stat(file);
-  return JSON.parse(await readFile(file, "utf8"));
+  const text = await readFile(file, "utf8");
+  return RAW.has(key) ? text : JSON.parse(text);
+}
+
+/** Spec-Namen (DE/EN) aus localization.xml ziehen – nur Einträge @DESTINYBOARD_TITLE_* */
+function parseSpecNames(xml) {
+  const out = {};
+  if (!xml) return out;
+  const re = /<tu tuid="@DESTINYBOARD_TITLE_([A-Z0-9_]+)">([\s\S]*?)<\/tu>/g;
+  let m;
+  while ((m = re.exec(xml))) {
+    const seg = (lang) => (m[2].match(new RegExp(`xml:lang="${lang}">\\s*<seg>([^<]*)</seg>`)) || [])[1];
+    out[m[1]] = [seg("DE-DE") || seg("EN-US") || m[1], seg("EN-US") || m[1]];
+  }
+  return out;
+}
+
+/** Specs (Destiny Board) mit Fokus-Rabatten. bonus je Stufe × 100 = FCE je Stufe. */
+function parseSpecs(ach, names) {
+  const root = ach[Object.keys(ach).find((k) => k !== "?xml")];
+  const maxLevels = {};
+  for (const t of arr(root.template)) {
+    const raw = typeof t.baselevels === "string" ? t.baselevels : t.baselevels?.["#text"] || "";
+    const rows = raw.split(/\s+/).filter((l) => /^\d/.test(l)).length;
+    maxLevels[t["@name"]] = rows || 100;
+  }
+  const specs = [];
+  for (const a of [...arr(root.templateachievement), ...arr(root.achievement)]) {
+    const bonuses = arr(a.baserewards?.bonus)
+      .filter((b) => /focuscostreduction$/.test(b["@type"] || ""))
+      .map((b) => ({
+        kind: b["@type"].startsWith("farming") ? "farm" : "craft",
+        fce: Math.round(num(b["@bonus"]) * 100 * 100) / 100,
+        min: num(b["@mintier"], 0), max: num(b["@maxtier"], 8),
+        p: arr(b.itempattern).map((x) => x["@pattern"])
+      }));
+    if (!bonuses.length) continue;
+    const id = a["@id"];
+    const [de, en] = names[id] || [id, id];
+    specs.push({
+      id, n: de, e: en, cat: a["@category"] || "", ring: num(a["@ring"]),
+      max: maxLevels[a["@usetemplate"]] || 100,
+      parents: arr(a.parentachievements?.achievement).map((x) => x["@id"]),
+      bonuses
+    });
+  }
+  return specs;
 }
 
 const arr = (v) => (v == null ? [] : Array.isArray(v) ? v : [v]);
@@ -77,6 +127,7 @@ function parseRecipes(reqs) {
 }
 
 export function buildGameData(src) {
+  const specs = src.achievements ? parseSpecs(src.achievements, parseSpecNames(src.localization)) : [];
   const nameMap = new Map();
   for (const n of src.names) {
     const ln = n.LocalizedNames || {};
@@ -238,6 +289,7 @@ export function buildGameData(src) {
     refiningCategories,
     locations,
     farmMods,
+    specs,
     items,
     recipes,
     farming: { crops, animals, foods }
@@ -246,7 +298,10 @@ export function buildGameData(src) {
 
 async function main() {
   const src = {};
-  for (const key of Object.keys(SOURCES)) src[key] = await load(key);
+  for (const key of Object.keys(SOURCES)) {
+    try { src[key] = await load(key); }
+    catch (e) { if (!OPTIONAL.has(key)) throw e; console.warn(`Optional übersprungen: ${SOURCES[key]} (${e.message})`); }
+  }
   const data = buildGameData(src);
   await mkdir(path.dirname(OUT), { recursive: true });
   await writeFile(OUT, JSON.stringify(data));

@@ -22,6 +22,7 @@ const DEFAULT_STATE = {
     useFocus: false,
     dailyBonus: 0,
     fce: 0,
+    fceManual: false,
     stationFee: 300,
     quality: 1,
     craftSelf: [],
@@ -30,10 +31,11 @@ const DEFAULT_STATE = {
     manualPrices: {},
     manualSale: null
   },
-  market: { watch: ["T4_PLANKS", "T5_PLANKS", "T4_BAG", "T4_MEAL_STEW"], quality: 1, cities: ["Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien", "Black Market"] },
+  market: { view: "compare", watch: ["T4_PLANKS", "T5_PLANKS", "T4_BAG", "T4_MEAL_STEW"], quality: 1, cities: ["Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien", "Black Market"] },
   island: {
     city: "Lymhurst",
     fce: 0,
+    fceManual: false,
     priceCity: "Lymhurst",
     plots: [
       { id: "p1", type: "farm", content: "T1_FARM_CARROT_SEED", tiles: 9, useFocus: false, cycles: 1 },
@@ -41,6 +43,9 @@ const DEFAULT_STATE = {
     ],
     manualPrices: {}
   },
+  // Spec-Stufen aus dem Destiny Board: { SPEC_ID: Stufe }
+  specs: {},
+  profile: { search: "", cat: "crafting" },
   plans: [],
   // Marktdaten-Schnappschuss: key "ID|Stadt|Qualität" -> Datensatz des Data Project
   prices: {},
