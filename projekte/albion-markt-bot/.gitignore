@@ -1,0 +1,5 @@
+config.json
+verkaeufe.log
+debug/
+.venv/
+__pycache__/
