@@ -1,0 +1,14 @@
+{
+  "name": "albion-werkbank",
+  "version": "2.0.0",
+  "description": "Lokales Crafting-, Refining-, Markt- und Insel-Planungstool für Albion Online",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.mjs",
+    "update-data": "node tools/build-data.mjs"
+  },
+  "license": "MIT"
+}
