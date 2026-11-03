@@ -14,15 +14,16 @@ export function renderMarket(root, app) {
 
   // ---------- Merkliste
   const results = h("div", { class: "search-results compact" });
-  const search = h("input", { type: "search", placeholder: "Item zur Merkliste hinzufügen …", "aria-label": "Item suchen",
+  const search = h("input", { type: "search", placeholder: "Item hinzufügen, z. B. „Reitpferd“, „t5 tasche“, „planken 6.1“ …", "aria-label": "Item suchen",
     oninput: debounce((e) => {
-      const list = searchFamilies(e.target.value, { lang, limit: 12 });
+      const q = e.target.value;
+      const list = q.trim() ? searchFamilies(q, { lang, limit: 20 }) : [];
       results.replaceChildren(...list.map((r) => h("button", { type: "button", class: "result", onclick: () => {
-        const tierIds = [...variants(r.id).values()].flatMap((mm) => [...mm.values()]);
-        const pickId = tierIds.find((id) => D.items[id].t === 4 && D.items[id].l === 0) || r.id;
-        if (!m.watch.includes(pickId)) m.watch.push(pickId);
+        if (!m.watch.includes(r.id)) m.watch.push(r.id);
+        toast(`${itemName(r.id, lang)} ${tierLabel(r.id)} hinzugefügt.`, "ok");
         app.save(); app.render();
-      } }, h("span", { class: "result-name" }, r.name))));
+      } }, h("span", { class: "result-name" }, `${r.name} `, h("span", { class: "badge small" }, tierLabel(r.id))), h("span", { class: "result-meta" }, GROUPS.find((g) => g.id === r.family.group)?.label || ""))));
+      if (q.trim() && !list.length) results.append(h("p", { class: "muted small pad" }, "Nichts gefunden. Tipp: deutsch oder englisch, Tier als „t5“ oder „5.1“."));
     }, 150) });
 
   const qualitySel = select([1, 2, 3, 4, 5].map((q) => ({ value: String(q), label: `Qualität ${q}` })), String(m.quality), (v) => { m.quality = Number(v); app.save(); app.render(); });

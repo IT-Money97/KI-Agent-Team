@@ -38,21 +38,33 @@ export function familyKey(id) {
   return id.replace(/@\d$/, "").replace(/_LEVEL\d$/, "").replace(/^T\d_/, "");
 }
 
+/** Für die Suche: Kleinbuchstaben, Umlaute ausgeschrieben, Satzzeichen weg */
+export function norm(text) {
+  return String(text).toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss").replace(/[^a-z0-9@.]+/g, " ");
+}
+
+// Tier-Wörter (deutsch und englisch) → Tier-Filter
+const TIER_WORDS = { anfaenger: 1, beginner: 1, neuling: 2, novizen: 2, novice: 2, geselle: 3, gesellen: 3, journeyman: 3, adept: 4, adepten: 4, experte: 5, experten: 5, expert: 5, meister: 6, meisters: 6, master: 6, grossmeister: 7, grossmeisters: 7, grandmaster: 7, aeltester: 8, aeltesten: 8, aelterer: 8, elder: 8 };
+// Häufige Spielerbegriffe, die im Spiel anders heißen
+const SYNONYMS = { heiltrank: "lebenstrank", heiltraenke: "lebenstrank", karotte: "moehre", karotten: "moehre", tasche: "tasche tornister bag", reittier: "mount reitpferd gesattelter", mount: "reittier reitpferd", sattel: "gesattelter gesattelte reitpferd", pferd: "pferd horse", holz: "holz wood planken", erz: "erz ore", barren: "barren bar", stoff: "stoff cloth", fell: "fell hide" };
+
 function buildFamilies() {
   FAMILIES = new Map();
   for (const [id, it] of Object.entries(DATA.items)) {
     const fk = familyKey(id);
     let f = FAMILIES.get(fk);
-    if (!f) FAMILIES.set(fk, (f = { key: fk, ids: [], craftable: false, search: "", group: it.s }));
+    if (!f) FAMILIES.set(fk, (f = { key: fk, ids: [], craftable: false, search: "", names: new Set(), group: it.s, translated: false }));
     f.ids.push(id);
     if (DATA.recipes[id]) f.craftable = true;
-    if (it.l === 0) f.search += ` ${it.n} ${it.e}`.toLowerCase();
+    if (it.n && it.n !== id) f.translated = true;
+    if (it.l === 0) f.names.add(id);
   }
   for (const f of FAMILIES.values()) {
-    // Quest-/Handelswaren und Items ohne Übersetzung aus der Suche ausblenden
-    const first = DATA.items[f.ids[0]];
-    f.hidden = /QUESTITEM|TRADEPACK|_TEST|^UNIQUE_|TUTORIAL|SKIN_/.test(f.key) || first.n === f.ids[0];
-    f.search += ` ${f.key.toLowerCase().replace(/_/g, " ")}`;
+    // Quest-/Handelswaren, Testitems und Items ohne Übersetzung aus der Suche ausblenden
+    f.hidden = /QUESTITEM|TRADEPACK|_TEST|^UNIQUE_|TUTORIAL|SKIN_|NONTRADABLE|KILL_EMOTE|LOOTBAG/.test(f.key) || !f.translated;
+    // je Basis-Item (ohne Verzauberung) die Wörter des deutschen und englischen Namens
+    f.entries = [...f.names].map((id) => ({ id, t: DATA.items[id].t, words: `${norm(DATA.items[id].n)} ${norm(DATA.items[id].e)}`.split(/\s+/).filter(Boolean) }));
+    f.keyWords = norm(f.key.replace(/_/g, " ")).split(/\s+/).filter(Boolean);
     f.ids.sort((a, b) => DATA.items[a].t - DATA.items[b].t || DATA.items[a].l - DATA.items[b].l);
   }
 }
@@ -83,33 +95,89 @@ export function tierLabel(id) {
 /** Suche nach Item-Familien. opts: { craftable, group } */
 export const POPULAR = ["T4_BAG", "T4_PLANKS", "T4_CLOTH", "T4_LEATHER", "T4_METALBAR", "T4_STONEBLOCK", "T4_MEAL_STEW", "T4_POTION_HEAL", "T4_MAIN_SWORD", "T4_ARMOR_LEATHER_SET1", "T4_CAPE", "T4_MOUNT_HORSE"];
 
+// Kategorien, die bei der Suche nach hinten rutschen (Möbel, Kosmetik …)
+const LOW_GROUPS = new Set(["furniture", "vanity", "other", ""]);
+
+/**
+ * Suche nach Item-Familien. Versteht auch Tier-Angaben: „t5 tasche“, „tasche 6.1“, „Großmeister Tasche“,
+ * Item-IDs („T4_BAG@1“), Umlaute ohne Punkte („grossmeister“) und einige Spielerbegriffe („Heiltrank“).
+ * opts: { craftable, group, limit, lang }
+ * Ergebnis: [{ family, id, name }] – id ist die passende Variante (Tier/Verzauberung)
+ */
 export function searchFamilies(query, { craftable = false, group = "", limit = 40, lang = "de" } = {}) {
-  const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
-  if (!words.length && !group) {
+  const raw = String(query || "").trim();
+  if (!raw && !group) {
     return POPULAR.filter((id) => DATA.items[id]).map((id) => ({ family: family(id), id, name: itemName(id, lang), popular: true }));
   }
-  const out = [];
+  // Direkte Item-ID
+  const direct = raw.toUpperCase();
+  if (/^T\d_[A-Z0-9_]+(@\d)?$/.test(direct) && DATA.items[direct]) return [{ family: family(direct), id: direct, name: itemName(direct, lang) }];
+
+  let tier = null, ench = null;
+  const words = [];
+  for (const w of norm(raw).split(/\s+/).filter(Boolean)) {
+    const t = w.match(/^t?([1-8])(?:[.@]([0-4]))?$/);
+    if (t) { tier = Number(t[1]); if (t[2] != null) ench = Number(t[2]); continue; }
+    const e = w.match(/^[.@]([0-4])$/);
+    if (e) { ench = Number(e[1]); continue; }
+    if (TIER_WORDS[w]) { tier = TIER_WORDS[w]; continue; }
+    words.push(w);
+  }
+  const alts = words.map((w) => (SYNONYMS[w] ? [w, ...SYNONYMS[w].split(" ")] : [w]));
+
+  // Punkte je Suchwort: ganzes Wort 6, Wortanfang 5, im Wort (z. B. „Breit-schwert“) 3, nur in der Item-ID 2; Synonyme 1 weniger
+  const wordScore = (entryWords, keyWords, options) => {
+    let best = -1;
+    options.forEach((w, i) => {
+      const minus = i ? 1 : 0;
+      for (const ew of entryWords) {
+        if (ew === w) best = Math.max(best, 6 - minus);
+        else if (ew.startsWith(w)) best = Math.max(best, 5 - minus);
+        else if (w.length >= 4 && ew.includes(w)) best = Math.max(best, 3 - minus);
+      }
+      if (keyWords.includes(w)) best = Math.max(best, 2 - minus);
+      else if (w.length >= 3 && keyWords.some((k) => k.startsWith(w))) best = Math.max(best, 1 - minus);
+    });
+    return best;
+  };
+  const scored = [];
   for (const f of FAMILIES.values()) {
     if (f.hidden) continue;
     if (craftable && !f.craftable) continue;
     if (group && f.group !== group) continue;
-    if (words.length && !words.every((w) => f.search.includes(w))) continue;
-    out.push(f);
-    if (out.length >= limit * 4) break;
-  }
-  const rep = (f) => f.ids.find((i) => DATA.items[i].l === 0 && DATA.items[i].t === 4) || f.ids.find((i) => DATA.items[i].l === 0) || f.ids[0];
-  return out
-    .map((f) => ({ family: f, id: rep(f), name: itemName(rep(f), lang) }))
-    .sort((a, b) => {
-      if (words.length) {
-        const q = words.join(" ");
-        const sa = a.name.toLowerCase().startsWith(q) ? 0 : 1;
-        const sb = b.name.toLowerCase().startsWith(q) ? 0 : 1;
-        if (sa !== sb) return sa - sb;
+    let top = null;
+    for (const e of f.entries) {
+      if (tier != null && e.t !== tier) continue;
+      let score = 0;
+      for (const options of alts) {
+        const sc = wordScore(e.words, f.keyWords, options);
+        if (sc < 0) { score = -1; break; }
+        score += sc;
       }
-      return a.name.localeCompare(b.name, "de");
-    })
+      if (score < 0) continue;
+      if (!top || score > top.score || (score === top.score && Math.abs(e.t - 4) < Math.abs(top.t - 4))) top = { ...e, score };
+    }
+    if (!top) continue;
+    const pick = pickVariant(f, tier ?? top.t, ench, top.id);
+    if (!pick) continue;
+    let score = top.score;
+    if (f.craftable) score += 1;
+    if (LOW_GROUPS.has(f.group)) score -= 3;
+    scored.push({ family: f, id: pick, name: itemName(pick, lang), score });
+  }
+  return scored
+    .sort((a, b) => b.score - a.score || a.name.length - b.name.length || a.name.localeCompare(b.name, "de"))
     .slice(0, limit);
+}
+
+/** Passende Variante einer Familie: gewünschtes Tier/Verzauberung, sonst T4.0 */
+function pickVariant(f, tier, ench, preferred) {
+  if (preferred && ench == null) return preferred;
+  const items = f.ids.map((id) => [id, DATA.items[id]]);
+  const ok = items.filter(([, it]) => (tier == null || it.t === tier) && (ench == null || it.l === ench));
+  if (!ok.length) return null;
+  const pref = ok.find(([, it]) => it.l === (ench ?? 0) && it.t === (tier ?? 4)) || ok.find(([, it]) => it.l === (ench ?? 0)) || ok[0];
+  return pref[0];
 }
 
 /** Varianten (Tier × Verzauberung) einer Familie */

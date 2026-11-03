@@ -235,3 +235,11 @@ select.mini { min-height: 28px; padding: 2px 6px; font-size: .85em; }
   .card { padding: var(--s3); }
 }
 @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+.use-box { display: flex; flex-direction: column; gap: var(--s2); background: var(--surface-2); border-radius: var(--r-m); padding: var(--s3); }
+.reco { font-size: .9rem; }
+.reco ul { margin: 4px 0 var(--s2); padding-left: 1.2em; }
+.reco li.good { font-weight: 600; }
+tr.skipped td { opacity: .55; }
+tr.skipped td:first-child { opacity: 1; }
+.reco-band { border-radius: var(--r-m); padding: var(--s2) var(--s3); background: var(--surface-2); border-left: 4px solid var(--border); font-size: .92rem; }
+.reco-band.reco-good { border-left-color: var(--good); } .reco-band.reco-bad { border-left-color: var(--warn); }
