@@ -31,7 +31,19 @@ if not exist "C:\Program Files\Tesseract-OCR\tesseract.exe" (
     echo.
     echo Tesseract-OCR fehlt ^(liest die Preise vom Bildschirm^).
     choice /c JN /m "Jetzt mit winget installieren"
-    if not errorlevel 2 winget install -e --id UB-Mannheim.TesseractOCR
+    if not errorlevel 2 (
+      where winget >nul 2>nul
+      if errorlevel 1 (
+        echo winget gibt es auf diesem PC nicht. Ich oeffne die Download-Seite.
+        echo Dort "tesseract-ocr-w64-setup-....exe" laden, installieren ^(immer Weiter^)
+        echo und danach start.bat neu starten.
+        start "" "https://github.com/UB-Mannheim/tesseract/wiki"
+        pause
+        exit /b 1
+      ) else (
+        winget install -e --id UB-Mannheim.TesseractOCR
+      )
+    )
   )
 )
 

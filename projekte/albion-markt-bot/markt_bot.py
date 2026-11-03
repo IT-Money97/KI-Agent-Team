@@ -149,7 +149,7 @@ def tesseract(cfg):
     pfad = finde_tesseract(cfg.get("tesseract_pfad") if cfg else None)
     if not pfad:
         print("\nTesseract-OCR wurde nicht gefunden.")
-        print("Installiere es mit:  winget install UB-Mannheim.TesseractOCR")
+        print("Download: https://github.com/UB-Mannheim/tesseract/wiki (Windows 64 bit Setup)")
         print("oder trage den Pfad zu tesseract.exe in config.json bei 'tesseract_pfad' ein.")
         sys.exit(1)
     return pfad
