@@ -6,6 +6,9 @@ Dieses Repo ist die Zentrale eines autonomen Agententeams für Websites, KI-Auto
 - `/auftrag <Beschreibung>`: baut ein Projekt von Planung bis Live-URL; Ergebnis in `ergebnisse/`.
 - `/akquise <Branche und Region>`: findet und bewertet Leads und schreibt Ansprache-Entwürfe.
 
+## Agenten-Büro
+`buero/start.bat` öffnet ein Pixel-Büro unter http://localhost:4321, in dem die Agenten live arbeiten (gespeist über Hooks in `.claude/settings.json`). Details: `buero/README.md`.
+
 ## Team (`.claude/agents/`)
 projektleiter, architekt, designer, frontend, backend, ux-tester, markt-analyst, vertrieb
 

@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agenten-Büro</title>
+<style>
+  :root {
+    --bg: #14161c; --panel: #1d2029; --line: #2c303c; --text: #e8e9ee; --muted: #9196a5;
+    --work: #3ddc84; --done: #5aa9ff; --wait: #ffb547; --pause: #6b7080;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 18px; margin: 0; }
+  .live { font-size: 12px; padding: 3px 8px; border-radius: 99px; background: var(--line); color: var(--muted); }
+  .live.on { background: #183d2a; color: var(--work); }
+  .live.demo { background: #3d3018; color: var(--wait); }
+  header .spacer { flex: 1; }
+  button { background: var(--line); color: var(--text); border: 0; border-radius: 8px; padding: 7px 12px; font: inherit; cursor: pointer; }
+  button:hover { background: #3a3f4e; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; padding: 16px; max-width: 1500px; margin: 0 auto; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .buero { position: relative; align-self: start; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: #353a4b; line-height: 0; }
+  canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+  .overlay { position: absolute; inset: 0; pointer-events: none; line-height: 1.4; }
+  .tag { position: absolute; transform: translate(-50%, 0); font-size: 11px; font-weight: 600; white-space: nowrap;
+         background: rgba(15,16,22,.85); padding: 1px 6px; border-radius: 6px; display: flex; align-items: center; gap: 4px; }
+  .tag.s-pause { opacity: .65; font-size: 10px; }
+  @media (max-width: 600px) { .tag.s-pause { display: none; } .bubble { font-size: 10px; max-width: 140px; } }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pause); }
+  .s-arbeitet .dot { background: var(--work); box-shadow: 0 0 6px var(--work); }
+  .s-fertig .dot { background: var(--done); }
+  .s-wartet .dot { background: var(--wait); }
+  .bubble { position: absolute; transform: translate(-50%, -100%); max-width: 210px; font-size: 12px; line-height: 1.3;
+            background: #fff; color: #15161b; padding: 5px 8px; border-radius: 9px; box-shadow: 0 3px 10px rgba(0,0,0,.4);
+            transition: opacity .4s; white-space: normal; text-align: center; }
+  .bubble::after { content: ""; position: absolute; left: 50%; bottom: -6px; margin-left: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: #fff; }
+  .bubble.weg { opacity: 0; }
+  aside { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  .box h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; }
+  .team { display: grid; gap: 6px; }
+  .karte { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 8px; background: #23262f; }
+  .karte .ico { font-size: 16px; text-align: center; }
+  .karte .n { font-weight: 600; font-size: 13px; }
+  .karte .a { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .karte .st { font-size: 11px; padding: 2px 7px; border-radius: 99px; background: var(--line); color: var(--muted); }
+  .karte.s-arbeitet .st { background: #183d2a; color: var(--work); }
+  .karte.s-fertig .st { background: #182c45; color: var(--done); }
+  .karte.s-wartet .st { background: #3d3018; color: var(--wait); }
+  .feed { list-style: none; margin: 0; padding: 0; max-height: 340px; overflow: auto; font-size: 12px; }
+  .feed li { padding: 5px 0; border-bottom: 1px solid var(--line); }
+  .feed time { color: var(--muted); margin-right: 6px; font-variant-numeric: tabular-nums; }
+  .hinweis { margin: 0 16px; padding: 10px 14px; border-radius: 10px; background: #2a2416; color: #f3d9a4; font-size: 13px; }
+  .hinweis[hidden] { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🏢 Agenten-Büro</h1>
+  <span id="live" class="live">verbinde …</span>
+  <span class="spacer"></span>
+  <button id="demo">▶ Demo abspielen</button>
+</header>
+<p id="hinweis" class="hinweis" hidden>
+  Noch keine Live-Daten. Starte in diesem Ordner Claude Code und gib z. B. <b>/auftrag Webseite für Bäckerei Müller</b> ein,
+  dann laufen die Agenten hier sichtbar los. Oder klick auf <b>Demo abspielen</b>.
+</p>
+<main>
+  <div class="buero"><canvas id="c"></canvas><div class="overlay" id="ov"></div></div>
+  <aside>
+    <div class="box"><h2>Team</h2><div class="team" id="team"></div></div>
+    <div class="box"><h2>Was gerade passiert</h2><ul class="feed" id="feed"></ul></div>
+  </aside>
+</main>
+<script>
+// ---------- Team ----------
+const W = 360, H = 200, S = 4;
+const TEAM = [
+  { id: 'zentrale',     name: 'Zentrale',      ico: '🧠', rolle: 'verteilt die Arbeit', hair: '#2b1d14', shirt: '#7b5cff', skin: '#f1c7a0', acc: 'headset' },
+  { id: 'projektleiter',name: 'Projektleiter', ico: '📋', rolle: 'plant und nimmt ab',  hair: '#4a3020', shirt: '#2f4a7a', skin: '#e9b98e', acc: 'tie' },
+  { id: 'architekt',    name: 'Architekt',     ico: '📐', rolle: 'Technik und Struktur', hair: '#111111', shirt: '#5b6470', skin: '#c98d5e', acc: 'glasses' },
+  { id: 'designer',     name: 'Designerin',    ico: '🎨', rolle: 'Farben und Layout',   hair: '#c0392b', shirt: '#e86fa8', skin: '#f3cfae', acc: 'long' },
+  { id: 'frontend',     name: 'Frontend',      ico: '💻', rolle: 'baut die Seite',      hair: '#e0b04a', shirt: '#24a877', skin: '#f1c7a0', acc: 'cap' },
+  { id: 'backend',      name: 'Backend',       ico: '⚙️', rolle: 'Formulare, APIs',     hair: '#3a2a20', shirt: '#2b2b2b', skin: '#8d5a3b', acc: 'hood' },
+  { id: 'ux-tester',    name: 'UX-Testerin',   ico: '🔍', rolle: 'testet wie ein Kunde', hair: '#6b3e1f', shirt: '#f2a33a', skin: '#e9b98e', acc: 'long' },
+  { id: 'markt-analyst',name: 'Markt-Analyst', ico: '📊', rolle: 'findet Leads',        hair: '#777777', shirt: '#3b8ea5', skin: '#f3cfae', acc: 'glasses' },
+  { id: 'vertrieb',     name: 'Vertrieb',      ico: '✉️', rolle: 'schreibt Angebote',   hair: '#1c1c1c', shirt: '#b8323e', skin: '#c98d5e', acc: 'tie' },
+  { id: 'aushilfe',     name: 'Aushilfe',      ico: '🧰', rolle: 'sonstige Helfer',     hair: '#8a5a2b', shirt: '#7c8a3a', skin: '#f1c7a0', acc: 'cap' },
+];
+// Schreibtische: x,y = linke obere Ecke der Tischplatte
+const DESKS = {
+  zentrale: [70, 62], aushilfe: [170, 62],
+  projektleiter: [16, 108], architekt: [76, 108], designer: [136, 108], frontend: [196, 108],
+  backend: [16, 160], 'ux-tester': [76, 160], 'markt-analyst': [136, 160], vertrieb: [196, 160],
+};
+const LOUNGE = [[268,86],[284,90],[300,86],[316,90],[332,86],[268,128],[284,132],[300,128],[316,132],[332,128]];
+
+const chars = {};
+TEAM.forEach((t, i) => {
+  const [dx, dy] = DESKS[t.id];
+  const [lx, ly] = LOUNGE[i];
+  chars[t.id] = { ...t, status: 'pause', action: 'macht Pause', x: lx, y: ly, tx: lx, ty: ly,
+    desk: [dx + 22, dy - 15], lounge: [lx, ly], seated: false, bubbleUntil: 0, lastActive: 0, count: 0 };
+});
+
+// ---------- Ereignisse verstehen ----------
+const agentById = {};
+const TOOLTEXT = {
+  Read: ['📖', 'liest'], Write: ['✍️', 'schreibt'], Edit: ['✏️', 'bearbeitet'], MultiEdit: ['✏️', 'bearbeitet'],
+  Bash: ['⌨️', 'Befehl:'], Grep: ['🔎', 'sucht nach'], Glob: ['🗂️', 'sucht Dateien'], WebSearch: ['🌐', 'recherchiert:'],
+  WebFetch: ['🌍', 'liest Webseite'], TodoWrite: ['📝', 'plant Aufgaben'], NotebookEdit: ['✏️', 'bearbeitet'],
+};
+function idFor(type) {
+  if (!type) return 'zentrale';
+  const k = String(type).toLowerCase();
+  return chars[k] ? k : 'aushilfe';
+}
+function wer(ev) {
+  if (ev.at) return idFor(ev.at);
+  if (ev.aid && agentById[ev.aid]) return agentById[ev.aid];
+  return 'zentrale';
+}
+function beschreibe(ev) {
+  if (ev.tool && ev.tool.startsWith('mcp__')) return '🔌 nutzt ' + ev.tool.split('__')[1];
+  const [ico, verb] = TOOLTEXT[ev.tool] || ['🛠️', 'nutzt ' + ev.tool];
+  return `${ico} ${verb}${ev.info ? ' ' + ev.info : ''}`;
+}
+function setze(id, status, action, bubble = true) {
+  const c = chars[id];
+  c.status = status;
+  if (action) c.action = action;
+  if (status === 'arbeitet') { c.lastActive = Date.now(); c.count++; c.tx = c.desk[0]; c.ty = c.desk[1]; }
+  if (status === 'fertig' || status === 'wartet') c.lastActive = Date.now();
+  if (bubble && action) c.bubbleUntil = Date.now() + 6000;
+}
+function verarbeite(ev, still = false) {
+  const zeit = new Date(ev.t || Date.now());
+  switch (ev.e) {
+    case 'SessionStart': setze('zentrale', 'wartet', '☕ ist bereit'); log(zeit, 'zentrale', 'ist bereit'); break;
+    case 'UserPromptSubmit': setze('zentrale', 'arbeitet', '📨 neuer Auftrag: ' + (ev.info || '')); log(zeit, 'zentrale', 'bekommt Auftrag: ' + (ev.info || '')); break;
+    case 'SubagentStart': {
+      const id = idFor(ev.at); if (ev.aid) agentById[ev.aid] = id;
+      setze(id, 'arbeitet', '🚀 fängt an'); log(zeit, id, 'fängt an'); break;
+    }
+    case 'SubagentStop': {
+      const id = ev.at ? idFor(ev.at) : (agentById[ev.aid] || 'aushilfe');
+      setze(id, 'fertig', '✅ fertig'); log(zeit, id, 'ist fertig'); break;
+    }
+    case 'PreToolUse': {
+      const id = wer(ev);
+      if (ev.tool === 'Agent' || ev.tool === 'Task') {
+        const ziel = idFor(ev.sub || 'general-purpose');
+        setze(id, 'arbeitet', `👉 beauftragt ${chars[ziel].name}`);
+        setze(ziel, 'arbeitet', '📥 ' + (ev.info || 'neue Aufgabe'));
+        log(zeit, id, `gibt ${chars[ziel].name} die Aufgabe: ${ev.info || ''}`);
+      } else {
+        const text = beschreibe(ev);
+        setze(id, 'arbeitet', text); log(zeit, id, text.replace(/^\S+\s/, ''), true);
+      }
+      break;
+    }
+    case 'PostToolUse': {
+      if ((ev.tool === 'Agent' || ev.tool === 'Task') && ev.sub) {
+        const ziel = idFor(ev.sub);
+        setze(ziel, 'fertig', '✅ abgegeben: ' + (ev.info || '')); log(zeit, ziel, 'gibt Ergebnis ab');
+      }
+      break;
+    }
+    case 'Stop': setze('zentrale', 'wartet', '💬 wartet auf dich'); log(zeit, 'zentrale', 'ist fertig und wartet auf dich'); break;
+  }
+  if (!still) karten();
+}
+
+// ---------- Seitenleiste ----------
+const feed = document.getElementById('feed');
+let letzteFeedZeile = null;
+function log(zeit, id, text, klein = false) {
+  const c = chars[id];
+  const z = zeit.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const li = document.createElement('li');
+  li.innerHTML = `<time>${z}</time><b>${c.ico} ${c.name}</b> ${esc(text)}`;
+  feed.prepend(li);
+  while (feed.children.length > 120) feed.lastChild.remove();
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m])); }
+const STATUSTEXT = { arbeitet: 'arbeitet', fertig: 'fertig', wartet: 'wartet', pause: 'Pause' };
+function karten() {
+  document.getElementById('team').innerHTML = TEAM.map((t) => {
+    const c = chars[t.id];
+    return `<div class="karte s-${c.status}"><span class="ico">${c.ico}</span>
+      <div><div class="n">${c.name}</div><div class="a" title="${esc(c.action)}">${esc(c.status === 'pause' ? c.rolle : c.action)}</div></div>
+      <span class="st">${STATUSTEXT[c.status]}${c.count ? ' · ' + c.count : ''}</span></div>`;
+  }).join('');
+}
+
+// ---------- Overlay (Namen + Sprechblasen) ----------
+const ov = document.getElementById('ov');
+TEAM.forEach((t) => {
+  const c = chars[t.id];
+  c.tagEl = document.createElement('div'); c.tagEl.className = 'tag';
+  c.tagEl.innerHTML = `<span class="dot"></span>${t.name}`;
+  c.bubEl = document.createElement('div'); c.bubEl.className = 'bubble weg';
+  ov.append(c.tagEl, c.bubEl);
+});
+
+// ---------- Pixel-Zeichnung ----------
+const cv = document.getElementById('c');
+cv.width = W * S; cv.height = H * S;
+const g = cv.getContext('2d');
+g.imageSmoothingEnabled = false;
+g.scale(S, S);
+const R = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), w, h); };
+
+function raum(t) {
+  // Boden
+  for (let y = 40; y < H; y += 10) for (let x = 0; x < W; x += 10)
+    R(x, y, 10, 10, ((x + y) / 10) % 2 ? '#3a3f52' : '#353a4b');
+  // Wand
+  R(0, 0, W, 40, '#4b5068'); R(0, 36, W, 4, '#2c3042');
+  // Fenster
+  for (const fx of [20, 110, 200]) {
+    R(fx, 6, 56, 24, '#2c3042'); R(fx + 2, 8, 52, 20, '#7ec8f2'); R(fx + 2, 22, 52, 6, '#a7dcf7');
+    R(fx + 27, 8, 2, 20, '#2c3042');
+    const wolke = (t / 120 + fx) % 70 - 10; R(fx + 2 + Math.max(0, Math.min(44, wolke)), 12, 8, 3, '#ffffff');
+  }
+  // Uhr
+  R(88, 10, 12, 12, '#e8e9ee'); R(93, 12, 2, 5, '#222'); R(94, 16, 4, 1, '#222');
+  // Pinnwand
+  R(282, 6, 60, 26, '#8a6a45'); R(284, 8, 56, 22, '#d9c39a');
+  [['#ffe066', 288, 10], ['#9ee6a0', 302, 12], ['#ff9fb1', 316, 10], ['#a8d4ff', 328, 13], ['#ffe066', 294, 20], ['#ff9fb1', 312, 21]]
+    .forEach(([c, x, y]) => R(x, y, 9, 7, c));
+  // Pausenecke: Teppich, Kaffeemaschine, Sofa, Pflanze
+  R(258, 74, 98, 76, '#4a3f5c'); R(260, 76, 94, 72, '#564a6b');
+  R(262, 46, 34, 14, '#6b4f36'); R(262, 46, 34, 3, '#8a6a45');
+  R(266, 36, 10, 12, '#2b2b2b'); R(268, 39, 6, 4, '#c0392b'); R(270, 44, 2, 2, (t / 400 | 0) % 2 ? '#3ddc84' : '#1a6b3e');
+  R(280, 40, 6, 8, '#f5f5f5');
+  R(300, 154, 50, 16, '#6c4a8a'); R(300, 150, 50, 6, '#7d59a0'); R(298, 152, 4, 18, '#5a3d73'); R(348, 152, 4, 18, '#5a3d73');
+  R(338, 50, 10, 10, '#a0522d'); R(334, 38, 18, 14, '#2e8b57'); R(338, 34, 10, 6, '#3cb371');
+  R(4, 50, 10, 10, '#a0522d'); R(1, 38, 16, 14, '#2e8b57'); R(5, 34, 8, 6, '#3cb371');
+}
+
+function tisch(id, t) {
+  const [dx, dy] = DESKS[id];
+  const c = chars[id];
+  const an = c.status === 'arbeitet' && c.seated;
+  // Monitor
+  R(dx + 3, dy - 16, 18, 13, '#1b1d24');
+  R(dx + 4, dy - 15, 16, 11, an ? '#0f2a1f' : '#2a2d38');
+  if (an) {
+    const f = (t / 150) | 0;
+    for (let i = 0; i < 5; i++) {
+      const w = 3 + ((i * 7 + f) % 10);
+      R(dx + 5, dy - 14 + i * 2, w, 1, ['#3ddc84', '#5aa9ff', '#ffb547', '#e8e9ee', '#ff79c6'][(i + f) % 5]);
+    }
+  } else if (c.status === 'fertig') {
+    R(dx + 9, dy - 11, 2, 2, '#5aa9ff'); R(dx + 11, dy - 9, 2, 2, '#5aa9ff'); R(dx + 13, dy - 11, 2, 2, '#5aa9ff'); R(dx + 15, dy - 13, 2, 2, '#5aa9ff');
+  }
+  R(dx + 11, dy - 3, 2, 3, '#1b1d24');
+  // Tischplatte und Front
+  R(dx, dy, 40, 9, '#9c7350'); R(dx, dy, 40, 2, '#b88a62'); R(dx, dy + 9, 40, 6, '#7a5638');
+  R(dx + 2, dy + 15, 3, 4, '#5a3d28'); R(dx + 35, dy + 15, 3, 4, '#5a3d28');
+  // Tastatur, Tasse
+  R(dx + 21, dy + 3, 12, 3, '#2b2d36');
+  if (an && ((t / 120) | 0) % 2) R(dx + 23 + ((t / 90) | 0) % 8, dy + 3, 2, 1, '#e8e9ee');
+  R(dx + 35, dy + 1, 3, 4, '#f5f5f5');
+}
+
+function figur(c, t) {
+  const x = Math.round(c.x), y = Math.round(c.y);
+  const gehen = Math.hypot(c.tx - c.x, c.ty - c.y) > 0.5;
+  const schritt = gehen ? ((t / 140) | 0) % 2 : 0;
+  const atmen = !gehen && ((t / 900 + x) | 0) % 2 ? 1 : 0;
+  // Schatten
+  R(x + 1, y + 17, 10, 2, 'rgba(0,0,0,.25)');
+  // Beine
+  R(x + 3, y + 13, 2, 4 - schritt, '#2c3346'); R(x + 7, y + 13, 2, 3 + schritt, '#2c3346');
+  // Körper
+  R(x + 2, y + 7 + atmen, 8, 7 - atmen, c.shirt);
+  if (c.acc === 'tie') R(x + 5, y + 8, 2, 4, '#f2d64b');
+  if (c.acc === 'hood') { R(x + 1, y + 6, 10, 2, c.shirt); }
+  // Arme
+  const tippt = c.seated && c.status === 'arbeitet';
+  const a = tippt ? ((t / 110) | 0) % 2 : 0;
+  R(x, y + 8 + atmen, 2, 4 - a, c.shirt); R(x + 10, y + 8 + atmen, 2, 3 + a, c.shirt);
+  R(x, y + 12 - a + atmen, 2, 1, c.skin); R(x + 10, y + 11 + a + atmen, 2, 1, c.skin);
+  // Kaffeetasse in der Pause
+  if (c.status === 'pause' && !gehen) { R(x + 11, y + 10, 3, 3, '#f5f5f5'); R(x + 11, y + 10, 3, 1, '#6b3e1f'); }
+  // Kopf
+  R(x + 2, y + 1 + atmen, 8, 6, c.skin);
+  R(x + 2, y + atmen, 8, 2, c.hair); R(x + 2, y + 1 + atmen, 1, 3, c.hair); R(x + 9, y + 1 + atmen, 1, 3, c.hair);
+  if (c.acc === 'long') { R(x + 1, y + 1 + atmen, 2, 7, c.hair); R(x + 9, y + 1 + atmen, 2, 7, c.hair); }
+  if (c.acc === 'cap') { R(x + 1, y - 1 + atmen, 10, 2, c.shirt); R(x + 8, y + 1 + atmen, 4, 1, c.shirt); }
+  // Augen (blinzeln)
+  const zu = ((t + x * 97) % 4000) < 140;
+  R(x + 4, y + 3 + atmen, 1, zu ? 0.5 : 1, '#1b1d24'); R(x + 7, y + 3 + atmen, 1, zu ? 0.5 : 1, '#1b1d24');
+  R(x + 5, y + 5 + atmen, 2, 1, '#b5684a');
+  if (c.acc === 'glasses') { R(x + 3, y + 3 + atmen, 3, 1, 'rgba(20,20,20,.6)'); R(x + 6, y + 3 + atmen, 3, 1, 'rgba(20,20,20,.6)'); }
+  if (c.acc === 'headset') { R(x + 1, y + 2 + atmen, 1, 3, '#222'); R(x + 10, y + 2 + atmen, 1, 3, '#222'); R(x + 10, y + 5 + atmen, 2, 1, '#222'); }
+  // Fertig: kleiner Haken über dem Kopf
+  if (c.status === 'fertig' && !gehen) { R(x + 4, y - 4, 1, 1, '#3ddc84'); R(x + 5, y - 3, 1, 1, '#3ddc84'); R(x + 6, y - 4, 1, 1, '#3ddc84'); R(x + 7, y - 5, 1, 1, '#3ddc84'); }
+}
+
+function bewegen() {
+  const jetzt = Date.now();
+  for (const c of Object.values(chars)) {
+    // Nach 25 s ohne Aktivität: zurück in die Pausenecke
+    if (c.status !== 'pause' && jetzt - c.lastActive > 25000) { c.status = 'pause'; c.action = 'macht Pause'; c.tx = c.lounge[0]; c.ty = c.lounge[1]; karten(); }
+    const dx = c.tx - c.x, dy = c.ty - c.y, d = Math.hypot(dx, dy);
+    if (d > 0.5) { const v = Math.min(d, 1.3); c.x += dx / d * v; c.y += dy / d * v; c.seated = false; }
+    else { c.x = c.tx; c.y = c.ty; c.seated = c.tx === c.desk[0] && c.ty === c.desk[1]; }
+  }
+}
+
+function overlay() {
+  const jetzt = Date.now();
+  for (const c of Object.values(chars)) {
+    c.tagEl.className = 'tag s-' + c.status;
+    c.tagEl.style.left = ((c.x + 6) / W * 100) + '%';
+    c.tagEl.style.top = ((c.y + (c.seated ? 31 : 20)) / H * 100) + '%';
+    const zeig = c.bubbleUntil > jetzt && c.status !== 'pause';
+    c.bubEl.classList.toggle('weg', !zeig);
+    if (zeig && c.bubEl.textContent !== c.action) c.bubEl.textContent = c.action;
+    c.bubEl.style.left = ((c.x + 6) / W * 100) + '%';
+    c.bubEl.style.top = ((c.y - 6) / H * 100) + '%';
+  }
+}
+
+function frame(t) {
+  bewegen();
+  raum(t);
+  const alle = Object.values(chars);
+  // Schreibtische von hinten nach vorne; sitzende Figur jeweils vor ihrem Tisch zeichnen (Tisch verdeckt die Beine)
+  Object.keys(DESKS).sort((a, b) => DESKS[a][1] - DESKS[b][1]).forEach((id) => {
+    alle.filter((c) => c.seated && c.id === id).forEach((c) => figur(c, t));
+    tisch(id, t);
+  });
+  alle.filter((c) => !c.seated).sort((a, b) => a.y - b.y).forEach((c) => figur(c, t));
+  overlay();
+  requestAnimationFrame(frame);
+}
+karten();
+requestAnimationFrame(frame);
+
+// ---------- Live-Verbindung ----------
+const live = document.getElementById('live');
+const hinweis = document.getElementById('hinweis');
+let demoLaeuft = false, liveDaten = false;
+function verbinden() {
+  if (location.protocol === 'file:') { live.textContent = 'offline (nur Demo)'; hinweis.hidden = false; return; }
+  const es = new EventSource('/events');
+  es.addEventListener('verlauf', (m) => {
+    const alt = JSON.parse(m.data);
+    live.textContent = 'live'; live.className = 'live on';
+    // Verlauf nur ins Protokoll übernehmen; Figuren zeigen nur den aktuellen Stand (letzte 25 s)
+    alt.forEach((l) => { try { const ev = JSON.parse(l); if (Date.now() - ev.t < 25000) verarbeite(ev, true); else logAlt(ev); } catch {} });
+    karten();
+    hinweis.hidden = alt.length > 0;
+  });
+  es.onmessage = (m) => {
+    try { const ev = JSON.parse(m.data); if (demoLaeuft) demoStopp(); liveDaten = true; hinweis.hidden = true; verarbeite(ev); } catch {}
+  };
+  es.onerror = () => { live.textContent = 'Verbindung weg …'; live.className = 'live'; };
+  es.onopen = () => { live.textContent = 'live'; live.className = 'live on'; };
+}
+function logAlt(ev) {
+  if (ev.e === 'PreToolUse' && ev.tool !== 'Agent' && ev.tool !== 'Task') log(new Date(ev.t), wer(ev), beschreibe(ev).replace(/^\S+\s/, ''));
+  else if (ev.e === 'SubagentStart') { agentById[ev.aid] = idFor(ev.at); log(new Date(ev.t), idFor(ev.at), 'fängt an'); }
+  else if (ev.e === 'UserPromptSubmit') log(new Date(ev.t), 'zentrale', 'bekommt Auftrag: ' + (ev.info || ''));
+}
+verbinden();
+
+// ---------- Demo ----------
+const DEMO = [
+  [0, { e: 'UserPromptSubmit', info: '/auftrag Webseite für Bäckerei Müller in Köln' }],
+  [1500, { e: 'PreToolUse', tool: 'Agent', sub: 'projektleiter', info: 'Auftrag planen' }],
+  [800, { e: 'SubagentStart', at: 'projektleiter', aid: 'd1' }],
+  [1500, { e: 'PreToolUse', aid: 'd1', tool: 'WebSearch', info: 'Bäckerei Webseite Beispiele' }],
+  [2200, { e: 'PreToolUse', aid: 'd1', tool: 'Write', info: 'PLAN.md' }],
+  [2000, { e: 'SubagentStop', at: 'projektleiter', aid: 'd1' }],
+  [600, { e: 'PreToolUse', tool: 'Agent', sub: 'architekt', info: 'Tech-Stack festlegen' }],
+  [800, { e: 'SubagentStart', at: 'architekt', aid: 'd2' }],
+  [1500, { e: 'PreToolUse', aid: 'd2', tool: 'Read', info: 'PLAN.md' }],
+  [1800, { e: 'PreToolUse', aid: 'd2', tool: 'Bash', info: 'Astro-Projekt anlegen' }],
+  [2200, { e: 'PreToolUse', aid: 'd2', tool: 'Write', info: 'ARCHITEKTUR.md' }],
+  [1500, { e: 'SubagentStop', at: 'architekt', aid: 'd2' }],
+  [600, { e: 'PreToolUse', tool: 'Agent', sub: 'designer', info: 'Designsystem erstellen' }],
+  [800, { e: 'SubagentStart', at: 'designer', aid: 'd3' }],
+  [1700, { e: 'PreToolUse', aid: 'd3', tool: 'Write', info: 'tokens.css' }],
+  [2000, { e: 'PreToolUse', aid: 'd3', tool: 'Write', info: 'DESIGN.md' }],
+  [1500, { e: 'SubagentStop', at: 'designer', aid: 'd3' }],
+  [600, { e: 'PreToolUse', tool: 'Agent', sub: 'frontend', info: 'Startseite bauen' }],
+  [200, { e: 'PreToolUse', tool: 'Agent', sub: 'backend', info: 'Kontaktformular bauen' }],
+  [800, { e: 'SubagentStart', at: 'frontend', aid: 'd4' }],
+  [300, { e: 'SubagentStart', at: 'backend', aid: 'd5' }],
+  [1300, { e: 'PreToolUse', aid: 'd4', tool: 'Write', info: 'index.astro' }],
+  [900, { e: 'PreToolUse', aid: 'd5', tool: 'Write', info: 'kontakt.ts' }],
+  [1600, { e: 'PreToolUse', aid: 'd4', tool: 'Edit', info: 'global.css' }],
+  [1200, { e: 'PreToolUse', aid: 'd5', tool: 'Bash', info: 'Formular testen' }],
+  [1500, { e: 'PreToolUse', aid: 'd4', tool: 'Bash', info: 'npm run build' }],
+  [1800, { e: 'SubagentStop', at: 'backend', aid: 'd5' }],
+  [900, { e: 'SubagentStop', at: 'frontend', aid: 'd4' }],
+  [600, { e: 'PreToolUse', tool: 'Agent', sub: 'ux-tester', info: 'Seite wie ein Kunde testen' }],
+  [800, { e: 'SubagentStart', at: 'ux-tester', aid: 'd6' }],
+  [1500, { e: 'PreToolUse', aid: 'd6', tool: 'Bash', info: 'Screenshots Handy und Desktop' }],
+  [2200, { e: 'PreToolUse', aid: 'd6', tool: 'Write', info: 'FEEDBACK-1.md' }],
+  [1500, { e: 'SubagentStop', at: 'ux-tester', aid: 'd6' }],
+  [600, { e: 'PreToolUse', tool: 'Bash', info: 'Auf Vercel veröffentlichen' }],
+  [2500, { e: 'PreToolUse', tool: 'Write', info: 'ergebnisse/bäckerei-müller.md' }],
+  [2000, { e: 'Stop' }],
+];
+let demoTimer = null;
+const demoBtn = document.getElementById('demo');
+function demoStopp() { clearTimeout(demoTimer); demoLaeuft = false; demoBtn.textContent = '▶ Demo abspielen'; if (liveDaten) { live.textContent = 'live'; live.className = 'live on'; } }
+demoBtn.onclick = () => {
+  if (demoLaeuft) return demoStopp();
+  demoLaeuft = true; demoBtn.textContent = '■ Demo stoppen'; live.textContent = 'Demo'; live.className = 'live demo';
+  let i = 0;
+  const weiter = () => {
+    if (i >= DEMO.length) return demoStopp();
+    const [warte, ev] = DEMO[i++];
+    demoTimer = setTimeout(() => { verarbeite({ ...ev, t: Date.now() }); weiter(); }, warte);
+  };
+  weiter();
+};
+</script>
+</body>
+</html>
