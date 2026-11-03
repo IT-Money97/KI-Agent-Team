@@ -4,3 +4,4 @@ node_modules/
 dist/
 .vercel/
 .netlify/
+buero/events.jsonl
