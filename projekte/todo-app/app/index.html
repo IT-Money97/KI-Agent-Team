@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Todo – lokal</title>
+  <meta name="description" content="Schlanke, lokale Todo-App mit Unter-Todos, Abhängigkeiten und Graph-Ansicht. Daten bleiben im Browser.">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#161615" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <a class="skip-link" href="#task-tree">Zur Aufgabenliste</a>
+  <a class="skip-link" href="#quick-input">Zur Schnelleingabe</a>
+  <div id="app" class="app">
+    <nav id="sidebar" class="sidebar" aria-label="Ansichten und Filter">
+      <div class="sidebar-head">
+        <span class="brand"><span data-icon="check-box"></span>Todo</span>
+        <button id="btn-close-sidebar" class="icon-btn only-mobile" type="button" aria-label="Menü schließen" data-icon="close"></button>
+      </div>
+      <h2 class="side-h">Ansichten</h2>
+      <ul id="views" class="plain side-list"></ul>
+      <h2 class="side-h">Filter</h2>
+      <ul id="filters" class="plain side-list"></ul>
+      <h2 class="side-h">Tags</h2>
+      <ul id="tags" class="plain side-list"></ul>
+      <div class="side-foot">
+        <button id="btn-theme" class="side-btn" type="button"></button>
+        <button id="btn-export" class="side-btn" type="button"><span data-icon="download"></span>Export (JSON)</button>
+        <button id="btn-import" class="side-btn" type="button"><span data-icon="upload"></span>Import (JSON)</button>
+        <input id="import-file" type="file" accept="application/json,.json" hidden>
+        <button id="btn-help" class="side-btn" type="button"><span data-icon="help"></span>Tastenkürzel <kbd>?</kbd></button>
+        <button id="btn-clear" class="side-btn side-btn-danger" type="button"><span data-icon="trash"></span>Alle Daten löschen …</button>
+      </div>
+    </nav>
+    <div id="scrim" class="scrim" hidden></div>
+
+    <main id="main" class="main">
+      <header id="topbar" class="topbar">
+        <button id="btn-menu" class="icon-btn only-mobile" type="button" aria-label="Menü öffnen" aria-controls="sidebar" aria-expanded="false" data-icon="menu"></button>
+        <h1 id="view-title" class="view-title">Liste</h1>
+        <div class="search">
+          <label for="search" class="visually-hidden">Aufgaben durchsuchen</label>
+          <span class="search-icon" data-icon="search"></span>
+          <input id="search" type="search" placeholder="Suchen (/)" autocomplete="off" enterkeyhint="search">
+        </div>
+        <button id="btn-search" class="icon-btn only-mobile" type="button" aria-label="Suche öffnen" aria-expanded="false" data-icon="search"></button>
+      </header>
+
+      <form id="quick" class="quick" autocomplete="off">
+        <div class="quick-row">
+          <label for="quick-input" class="visually-hidden">Neue Aufgabe (Kürzel n)</label>
+          <input id="quick-input" type="text" placeholder="Neue Aufgabe … (!hoch #tag morgen)" enterkeyhint="enter" aria-describedby="quick-preview">
+          <button class="btn btn-primary quick-add" type="submit" aria-label="Aufgabe hinzufügen" data-icon="plus"></button>
+        </div>
+        <div id="quick-preview" class="quick-preview" aria-live="polite"></div>
+      </form>
+
+      <section id="view-list" class="view" aria-labelledby="view-title">
+        <ul id="task-tree" class="plain tree" role="tree" aria-label="Aufgaben" tabindex="-1"></ul>
+        <div id="list-empty" class="empty" hidden></div>
+      </section>
+
+      <section id="view-next" class="view" aria-labelledby="view-title" hidden>
+        <p class="view-hint">Offene, nicht blockierte Aufgaben ohne offene Unter-Todos – sortiert nach Fälligkeit und Priorität.</p>
+        <ul id="next-list" class="plain next-list"></ul>
+        <div id="next-empty" class="empty" hidden></div>
+      </section>
+
+      <section id="view-graph" class="view view-graph" aria-labelledby="view-title" hidden>
+        <div id="graph" class="graph"></div>
+      </section>
+
+      <footer class="footer">Daten bleiben lokal im Browser. · <button id="btn-help-2" class="link-btn" type="button">Tastenkürzel (?)</button></footer>
+    </main>
+
+    <aside id="detail" class="detail" aria-labelledby="detail-h" hidden></aside>
+  </div>
+
+  <div id="toast" class="toast-region" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div id="live" class="visually-hidden" aria-live="polite"></div>
+
+  <dialog id="dlg-help" class="dialog" aria-labelledby="dlg-help-h">
+    <div class="dialog-head">
+      <h2 id="dlg-help-h">Tastenkürzel</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Hilfe schließen" data-icon="close"></button>
+    </div>
+    <table class="keys">
+      <tbody>
+        <tr><td><kbd>n</kbd></td><td>Schnelleingabe fokussieren</td></tr>
+        <tr><td><kbd>/</kbd></td><td>Suche</td></tr>
+        <tr><td><kbd>↑</kbd> <kbd>↓</kbd> oder <kbd>k</kbd> <kbd>j</kbd></td><td>Auswahl bewegen</td></tr>
+        <tr><td><kbd>→</kbd> <kbd>←</kbd></td><td>Aufklappen / Zuklappen</td></tr>
+        <tr><td><kbd>Enter</kbd></td><td>Detail öffnen; ist es offen: Titel bearbeiten (auch <kbd>F2</kbd>)</td></tr>
+        <tr><td><kbd>Leertaste</kbd></td><td>Abhaken</td></tr>
+        <tr><td><kbd>Alt+→</kbd> / <kbd>Alt+←</kbd></td><td>Einrücken / Ausrücken</td></tr>
+        <tr><td><kbd>Tab</kbd> / <kbd>Shift+Tab</kbd></td><td>Einrücken / Ausrücken, sobald eine Zeile per Pfeiltaste oder Klick gewählt ist; beim Hineintabben und nach <kbd>Esc</kbd> verlässt Tab die Liste</td></tr>
+        <tr><td><kbd>Alt+↑</kbd> / <kbd>Alt+↓</kbd></td><td>Verschieben innerhalb der Ebene</td></tr>
+        <tr><td><kbd>Entf</kbd></td><td>Löschen (mit Rückgängig)</td></tr>
+        <tr><td><kbd>Strg+Z</kbd> / <kbd>Strg+Shift+Z</kbd></td><td>Rückgängig / Wiederholen</td></tr>
+        <tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> / <kbd>g</kbd></td><td>Ansicht Liste / Als Nächstes / Graph</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Panel/Dialog schließen, Suche leeren</td></tr>
+        <tr><td><kbd>?</kbd></td><td>Diese Hilfe</td></tr>
+      </tbody>
+    </table>
+    <h3 class="dialog-sub">Schnelleingabe</h3>
+    <p class="dialog-text"><code>!hoch</code> <code>!mittel</code> <code>!niedrig</code> (auch <code>!3</code>…<code>!1</code>), <code>#tag</code>,
+      Datum: <code>heute</code> <code>morgen</code> <code>übermorgen</code> <code>freitag</code> <code>@fr</code> <code>24.12.</code> <code>2026-12-24</code>,
+      <code>&gt;</code> am Anfang = Unter-Todo der ausgewählten Aufgabe.</p>
+  </dialog>
+
+  <dialog id="dlg-confirm" class="dialog" aria-labelledby="dlg-confirm-h" aria-describedby="dlg-confirm-text">
+    <h2 id="dlg-confirm-h"></h2>
+    <div id="dlg-confirm-text" class="dialog-text"></div>
+    <div id="dlg-confirm-actions" class="dialog-actions"></div>
+  </dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
