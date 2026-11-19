@@ -1,0 +1,14 @@
+{
+  "name": "Todo – lokal",
+  "short_name": "Todo",
+  "description": "Lokale Todo-App mit Unter-Todos und Abhängigkeitsgraph.",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2954c8",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
